@@ -1,5 +1,6 @@
 package com.app.backend.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.app.backend.common.ApiResponse;
 import com.app.backend.service.UserService;
 import com.app.backend.dto.UserCreateRequest;
@@ -7,7 +8,6 @@ import com.app.backend.dto.UserDto;
 import com.app.backend.dto.UserUpdateRequest;
 
 import javax.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,7 +50,7 @@ public class UserController {
     }
 
     @GetMapping
-    public ApiResponse<Page<UserDto>> page(
+    public ApiResponse<IPage<UserDto>> page(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword

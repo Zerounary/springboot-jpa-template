@@ -9,18 +9,19 @@ spring:
     username: dash
     password: dash123
     driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
   session:
     store-type: jdbc
     jdbc:
       initialize-schema: always
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
 
 logging:
   level:
-    org.hibernate.SQL: info
+    com.baomidou.mybatisplus: info

@@ -1,15 +1,14 @@
 package com.app.backend.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.app.backend.common.BizException;
 import com.app.backend.dto.UserCreateRequest;
 import com.app.backend.dto.UserDto;
 import com.app.backend.dto.UserUpdateRequest;
 import com.app.backend.entity.User;
 import com.app.backend.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +28,9 @@ public class UserService {
 
     @Transactional
     public UserDto create(UserCreateRequest req) {
-        if (userRepository.existsByUsername(req.getUsername())) {
+        QueryWrapper<User> qw = new QueryWrapper<>();
+        qw.eq("username", req.getUsername());
+        if (userRepository.selectCount(qw) > 0) {
             throw new BizException(400, "用户名已存在");
         }
         User user = new User();
@@ -37,24 +38,28 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         user.setNickname(req.getNickname());
         user.setEmail(req.getEmail());
-        User saved = userRepository.save(user);
-        return toDto(saved);
+        userRepository.insert(user);
+        return toDto(user);
     }
 
     @Transactional
     public UserDto update(Long id, UserUpdateRequest req) {
-        User user = userRepository.findById(id).orElseThrow(() -> new BizException(404, "用户不存在"));
+        User user = userRepository.selectById(id);
+        if (user == null) {
+            throw new BizException(404, "用户不存在");
+        }
         user.setNickname(req.getNickname());
         user.setEmail(req.getEmail());
-        if (req.getPassword() != null && req.getPassword() != null) {
+        if (req.getPassword() != null) {
             user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         }
-        return toDto(userRepository.save(user));
+        userRepository.updateById(user);
+        return toDto(user);
     }
 
     @Transactional
     public void delete(Long id) {
-        if (!userRepository.existsById(id)) {
+        if (userRepository.selectById(id) == null) {
             throw new BizException(404, "用户不存在");
         }
         userRepository.deleteById(id);
@@ -62,27 +67,39 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserDto detail(Long id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new BizException(404, "用户不存在"));
+        User user = userRepository.selectById(id);
+        if (user == null) {
+            throw new BizException(404, "用户不存在");
+        }
         return toDto(user);
     }
 
     @Transactional(readOnly = true)
-    public Page<UserDto> page(int page, int size, String keyword) {
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 200), Sort.by(Sort.Direction.DESC, "id"));
-        if (keyword == null) {
-            return userRepository.findAll(pageable).map(this::toDto);
+    public IPage<UserDto> page(int page, int size, String keyword) {
+        Page<User> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
+        QueryWrapper<User> qw = new QueryWrapper<>();
+        if (keyword != null) {
+            qw.and(w -> w.like("username", keyword).or().like("nickname", keyword));
         }
-        return userRepository.findByUsernameContainingIgnoreCaseOrNicknameContainingIgnoreCase(keyword, keyword, pageable).map(this::toDto);
+        qw.orderByDesc("id");
+        IPage<User> result = userRepository.selectPage(p, qw);
+        return result.convert(this::toDto);
     }
 
     @Transactional(readOnly = true)
     public User getById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new BizException(404, "用户不存在"));
+        User user = userRepository.selectById(id);
+        if (user == null) {
+            throw new BizException(404, "用户不存在");
+        }
+        return user;
     }
 
     @Transactional(readOnly = true)
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+        QueryWrapper<User> qw = new QueryWrapper<>();
+        qw.eq("username", username);
+        return Optional.ofNullable(userRepository.selectOne(qw));
     }
 
     public UserDto toDto(User user) {

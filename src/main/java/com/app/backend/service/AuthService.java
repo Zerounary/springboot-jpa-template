@@ -5,10 +5,7 @@ import com.app.backend.dto.LoginRequest;
 import com.app.backend.dto.RegisterRequest;
 import com.app.backend.dto.UserCreateRequest;
 import com.app.backend.dto.UserDto;
-import com.app.backend.common.SessionKeys;
 import com.app.backend.entity.User;
-import javax.servlet.http.HttpSession;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordService passwordService;
+    private final JwtService jwtService;
 
-    public AuthService(UserService userService, PasswordEncoder passwordEncoder) {
+    public AuthService(UserService userService, PasswordService passwordService, JwtService jwtService) {
         this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
+        this.passwordService = passwordService;
+        this.jwtService = jwtService;
     }
 
     @Transactional
@@ -29,27 +28,20 @@ public class AuthService {
     }
 
     @Transactional
-    public UserDto login(LoginRequest req, HttpSession session) {
+    public String login(LoginRequest req) {
         User user = userService.findByUsername(req.getUsername())
                 .orElseThrow(() -> new BizException(400, "用户名或密码错误"));
-        if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+        if (!passwordService.matches(req.getPassword(), user.getPasswordHash())) {
             throw new BizException(400, "用户名或密码错误");
         }
-        session.setAttribute(SessionKeys.LOGIN_USER_ID, user.getId());
-        return userService.toDto(user);
-    }
-
-    public void logout(HttpSession session) {
-        session.invalidate();
+        return jwtService.createToken(user.getId(), user.getUsername());
     }
 
     @Transactional(readOnly = true)
-    public UserDto currentUser(HttpSession session) {
-        Object userIdObj = session.getAttribute(SessionKeys.LOGIN_USER_ID);
-        if (userIdObj == null) {
+    public UserDto currentUser(Long userId) {
+        if (userId == null) {
             throw new BizException(401, "未登录");
         }
-        Long userId = (Long) userIdObj;
         return userService.detail(userId);
     }
 

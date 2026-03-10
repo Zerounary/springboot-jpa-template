@@ -9,7 +9,7 @@ import com.app.backend.dto.UserDto;
 import com.app.backend.dto.UserUpdateRequest;
 import com.app.backend.entity.User;
 import com.app.backend.repository.UserRepository;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.app.backend.service.PasswordService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,11 +19,11 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordService passwordService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordService passwordService) {
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+        this.passwordService = passwordService;
     }
 
     @Transactional
@@ -35,7 +35,7 @@ public class UserService {
         }
         User user = new User();
         user.setUsername(req.getUsername());
-        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        user.setPasswordHash(passwordService.hash(req.getPassword()));
         user.setNickname(req.getNickname());
         user.setEmail(req.getEmail());
         userRepository.insert(user);
@@ -51,7 +51,7 @@ public class UserService {
         user.setNickname(req.getNickname());
         user.setEmail(req.getEmail());
         if (req.getPassword() != null) {
-            user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+            user.setPasswordHash(passwordService.hash(req.getPassword()));
         }
         userRepository.updateById(user);
         return toDto(user);

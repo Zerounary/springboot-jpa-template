@@ -9,14 +9,16 @@ spring:
     username: dash
     password: dash123
     driver-class-name: com.mysql.cj.jdbc.Driver
-  session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
   sql:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+
+app:
+  jwt:
+    secret: change-me-to-a-long-random-string
+    issuer: backend
+    expire-seconds: 7200
 
 mybatis-plus:
   configuration:

@@ -1,11 +1,12 @@
-package com.example.backend.auth;
+package com.example.backend.service;
 
-import com.example.backend.auth.dto.LoginRequest;
-import com.example.backend.auth.dto.RegisterRequest;
 import com.example.backend.common.BizException;
-import com.example.backend.user.User;
-import com.example.backend.user.UserService;
-import com.example.backend.user.dto.UserDto;
+import com.example.backend.common.SessionKeys;
+import com.example.backend.dto.LoginRequest;
+import com.example.backend.dto.RegisterRequest;
+import com.example.backend.dto.UserCreateRequest;
+import com.example.backend.dto.UserDto;
+import com.example.backend.entity.User;
 import javax.servlet.http.HttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -52,8 +53,8 @@ public class AuthService {
         return userService.detail(userId);
     }
 
-    private com.example.backend.user.dto.UserCreateRequest toUserCreateRequest(RegisterRequest req) {
-        com.example.backend.user.dto.UserCreateRequest u = new com.example.backend.user.dto.UserCreateRequest();
+    private UserCreateRequest toUserCreateRequest(RegisterRequest req) {
+        UserCreateRequest u = new UserCreateRequest();
         u.setUsername(req.getUsername());
         u.setPassword(req.getPassword());
         u.setNickname(req.getNickname());

@@ -1,4 +1,4 @@
-package com.example.backend.auth.dto;
+package com.example.backend.dto;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;

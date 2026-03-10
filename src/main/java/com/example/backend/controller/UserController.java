@@ -1,9 +1,10 @@
-package com.example.backend.user;
+package com.example.backend.controller;
 
 import com.example.backend.common.ApiResponse;
-import com.example.backend.user.dto.UserCreateRequest;
-import com.example.backend.user.dto.UserDto;
-import com.example.backend.user.dto.UserUpdateRequest;
+import com.example.backend.dto.UserCreateRequest;
+import com.example.backend.dto.UserDto;
+import com.example.backend.dto.UserUpdateRequest;
+import com.example.backend.service.UserService;
 import javax.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.DeleteMapping;

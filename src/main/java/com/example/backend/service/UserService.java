@@ -1,9 +1,11 @@
-package com.example.backend.user;
+package com.example.backend.service;
 
 import com.example.backend.common.BizException;
-import com.example.backend.user.dto.UserCreateRequest;
-import com.example.backend.user.dto.UserDto;
-import com.example.backend.user.dto.UserUpdateRequest;
+import com.example.backend.dto.UserCreateRequest;
+import com.example.backend.dto.UserDto;
+import com.example.backend.dto.UserUpdateRequest;
+import com.example.backend.entity.User;
+import com.example.backend.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

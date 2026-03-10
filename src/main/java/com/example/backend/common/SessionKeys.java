@@ -1,4 +1,4 @@
-package com.example.backend.auth;
+package com.example.backend.common;
 
 public class SessionKeys {
     public static final String LOGIN_USER_ID = "LOGIN_USER_ID";

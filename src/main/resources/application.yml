@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/dash?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: dash
+    password: dash123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
+
+logging:
+  level:
+    org.hibernate.SQL: info

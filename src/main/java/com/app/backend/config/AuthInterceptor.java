@@ -1,7 +1,7 @@
-package com.example.backend.config;
+package com.app.backend.config;
 
-import com.example.backend.common.SessionKeys;
-import com.example.backend.common.BizException;
+import com.app.backend.common.SessionKeys;
+import com.app.backend.common.BizException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;

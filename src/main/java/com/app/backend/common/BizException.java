@@ -1,4 +1,4 @@
-package com.example.backend.common;
+package com.app.backend.common;
 
 public class BizException extends RuntimeException {
     private final int code;

@@ -1,4 +1,4 @@
-package com.example.backend.dto;
+package com.app.backend.dto;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Size;

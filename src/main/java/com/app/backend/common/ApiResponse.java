@@ -1,4 +1,4 @@
-package com.example.backend.common;
+package com.app.backend.common;
 
 public class ApiResponse<T> {
     private int code;

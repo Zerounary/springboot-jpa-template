@@ -1,10 +1,10 @@
-package com.example.backend.controller;
+package com.app.backend.controller;
 
-import com.example.backend.common.ApiResponse;
-import com.example.backend.dto.LoginRequest;
-import com.example.backend.dto.RegisterRequest;
-import com.example.backend.dto.UserDto;
-import com.example.backend.service.AuthService;
+import com.app.backend.common.ApiResponse;
+import com.app.backend.dto.LoginRequest;
+import com.app.backend.dto.RegisterRequest;
+import com.app.backend.dto.UserDto;
+import com.app.backend.service.AuthService;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;

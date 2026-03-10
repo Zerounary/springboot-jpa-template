@@ -1,4 +1,4 @@
-package com.example.backend.common;
+package com.app.backend.common;
 
 import javax.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;

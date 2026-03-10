@@ -1,12 +1,12 @@
-package com.example.backend.service;
+package com.app.backend.service;
 
-import com.example.backend.common.BizException;
-import com.example.backend.common.SessionKeys;
-import com.example.backend.dto.LoginRequest;
-import com.example.backend.dto.RegisterRequest;
-import com.example.backend.dto.UserCreateRequest;
-import com.example.backend.dto.UserDto;
-import com.example.backend.entity.User;
+import com.app.backend.common.BizException;
+import com.app.backend.dto.LoginRequest;
+import com.app.backend.dto.RegisterRequest;
+import com.app.backend.dto.UserCreateRequest;
+import com.app.backend.dto.UserDto;
+import com.app.backend.common.SessionKeys;
+import com.app.backend.entity.User;
 import javax.servlet.http.HttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

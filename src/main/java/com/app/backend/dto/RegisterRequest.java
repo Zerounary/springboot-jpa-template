@@ -1,10 +1,9 @@
-package com.example.backend.dto;
+package com.app.backend.dto;
 
-import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
-public class UserCreateRequest {
+public class RegisterRequest {
 
     @NotBlank
     @Size(max = 64)
@@ -16,10 +15,6 @@ public class UserCreateRequest {
 
     @Size(max = 64)
     private String nickname;
-
-    @Email
-    @Size(max = 128)
-    private String email;
 
     public String getUsername() {
         return username;
@@ -43,13 +38,5 @@ public class UserCreateRequest {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 }

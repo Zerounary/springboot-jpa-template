@@ -9,6 +9,30 @@ const route = useRoute()
 
 const isAdmin = computed(() => auth.roleType === 1)
 
+const pageTitle = computed(() => {
+  const item = menus.value.find((m) => route.path === m.path)
+  return item?.label || '后台管理'
+})
+
+const pageSubtitle = computed(() => {
+  const map = {
+    '/dashboard': '查看医院运营概览与常用管理入口',
+    '/registrations': '统一处理挂号订单、支付与就诊状态',
+    '/medical-records': '管理电子病历与诊疗记录',
+    '/system-news': '维护医院公告与健康资讯内容',
+    '/health-monitors': '查看患者健康监测数据变化趋势',
+    '/users': '统一管理系统账号、角色与状态',
+    '/departments': '维护医院科室组织结构',
+    '/doctors': '配置医生档案、科室归属与出诊安排',
+    '/patients': '查看患者基础档案与关联信息',
+  }
+  return map[route.path] || '医院后台管理工作台'
+})
+
+const userInitial = computed(() => (auth.me?.realName || auth.me?.username || '管').slice(0, 1))
+
+const roleLabel = computed(() => (isAdmin.value ? '系统管理员' : '业务人员'))
+
 const menus = computed(() => {
   const base = [
     { path: '/dashboard', label: '首页' },
@@ -36,54 +60,42 @@ function logout() {
 </script>
 
 <template>
-  <el-container style="height: 100vh">
-    <el-aside width="220px">
-      <div class="brand">医疗档案系统</div>
-      <el-menu :default-active="route.path" router>
+  <el-container class="admin-shell">
+    <el-aside width="260px" class="admin-sidebar">
+      <div class="admin-brand">
+        <div class="admin-brand__eyebrow">HOSPITAL ADMIN</div>
+        <div class="admin-brand__title">医疗档案系统</div>
+        <div class="admin-brand__subtitle">简约、专业、可持续扩展的医院后台工作台</div>
+      </div>
+
+      <el-menu class="admin-menu" :default-active="route.path" router>
         <el-menu-item v-for="m in menus" :key="m.path" :index="m.path">
           {{ m.label }}
         </el-menu-item>
       </el-menu>
     </el-aside>
 
-    <el-container>
-      <el-header class="header">
-        <div class="header-left"></div>
-        <div class="header-right">
-          <span class="me">{{ auth.me?.realName || auth.me?.username }}</span>
-          <el-button size="small" @click="logout">退出</el-button>
+    <el-container class="admin-main">
+      <el-header class="admin-header">
+        <div class="admin-header__wrap">
+          <div>
+            <div class="admin-header__title">{{ pageTitle }}</div>
+            <div class="admin-header__subtitle">{{ pageSubtitle }}</div>
+          </div>
+
+          <div class="admin-userbox">
+            <div class="admin-userbox__badge">{{ userInitial }}</div>
+            <div>
+              <div class="admin-userbox__name">{{ auth.me?.realName || auth.me?.username }}</div>
+              <div class="admin-userbox__role">{{ roleLabel }}</div>
+            </div>
+            <el-button size="small" @click="logout">退出</el-button>
+          </div>
         </div>
       </el-header>
-      <el-main>
+      <el-main class="admin-content">
         <router-view />
       </el-main>
     </el-container>
   </el-container>
 </template>
-
-<style scoped>
-.brand {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  font-weight: 700;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.me {
-  font-size: 13px;
-  color: #303133;
-}
-</style>

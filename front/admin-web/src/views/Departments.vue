@@ -168,53 +168,86 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap">
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-        <el-input v-model="filters.keyword" placeholder="关键词（名称/编码）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
-        <el-select v-model="filters.status" placeholder="状态" clearable style="width: 140px" @change="resetAndSearch">
-          <el-option :value="1" label="启用" />
-          <el-option :value="0" label="禁用" />
-        </el-select>
-        <el-button type="primary" @click="resetAndSearch">查询</el-button>
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">科室管理</div>
+          <div class="admin-section__subtitle">维护医院组织结构、层级关系、科室编码与启用状态</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 个科室</div>
       </div>
 
-      <el-button type="primary" @click="openCreate">新增科室</el-button>
-    </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前科室数量</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">支持按名称、编码与状态检索</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">管理重点</div>
+          <div class="admin-stat-soft__value">结构与编码</div>
+          <div class="admin-stat-soft__desc">保证医院组织树清晰、规范、可扩展</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">场景目标</div>
+          <div class="admin-stat-soft__value">基础治理</div>
+          <div class="admin-stat-soft__desc">为医生、挂号、病历等业务提供稳定基础数据</div>
+        </div>
+      </div>
+    </section>
 
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="deptId" label="ID" width="90" />
-      <el-table-column prop="deptName" label="科室名称" min-width="160" show-overflow-tooltip />
-      <el-table-column prop="deptCode" label="科室编码" width="140" />
-      <el-table-column prop="parentId" label="上级ID" width="100" />
-      <el-table-column prop="sort" label="排序" width="90" />
-      <el-table-column label="状态" width="110">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ statusText(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="updateTime" label="更新时间" width="170" />
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-input v-model="filters.keyword" placeholder="关键词（名称/编码）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
+          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 140px" @change="resetAndSearch">
+            <el-option :value="1" label="启用" />
+            <el-option :value="0" label="禁用" />
+          </el-select>
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+        <div class="admin-toolbar__group">
+          <div class="admin-toolbar__meta">支持创建、编辑与维护科室层级</div>
+          <el-button type="primary" @click="openCreate">新增科室</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="deptId" label="ID" width="90" />
+        <el-table-column prop="deptName" label="科室名称" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="deptCode" label="科室编码" width="140" />
+        <el-table-column prop="parentId" label="上级ID" width="100" />
+        <el-table-column prop="sort" label="排序" width="90" />
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ statusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="updateTime" label="更新时间" width="170" />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增科室' : '编辑科室'" width="720px">
     <el-form ref="editFormRef" :model="editForm" label-width="100px" :disabled="editLoading">

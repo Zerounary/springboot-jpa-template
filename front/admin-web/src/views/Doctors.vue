@@ -163,51 +163,84 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap">
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-        <el-select v-model="filters.deptId" placeholder="科室" clearable style="width: 220px" @change="resetAndSearch">
-          <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
-        </el-select>
-        <el-input v-model="filters.keyword" placeholder="关键词（用户名/姓名/手机号）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
-        <el-button type="primary" @click="resetAndSearch">查询</el-button>
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">医生管理</div>
+          <div class="admin-section__subtitle">维护医生档案、科室归属、职称、专长与出诊安排</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 位医生</div>
       </div>
 
-      <el-button type="primary" @click="openCreate">新增医生</el-button>
-    </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前医生数量</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">可按科室与关键词快速筛选</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">管理重点</div>
+          <div class="admin-stat-soft__value">排班与专长</div>
+          <div class="admin-stat-soft__desc">突出医疗服务能力与预约效率</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">使用场景</div>
+          <div class="admin-stat-soft__value">档案维护</div>
+          <div class="admin-stat-soft__desc">支持新增、编辑、删除医生业务档案</div>
+        </div>
+      </div>
+    </section>
 
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="doctorId" label="ID" width="90" />
-      <el-table-column prop="userId" label="用户ID" width="100" />
-      <el-table-column prop="username" label="用户名" width="140" />
-      <el-table-column prop="realName" label="姓名" width="140" />
-      <el-table-column prop="phone" label="手机号" width="140" />
-      <el-table-column prop="deptId" label="科室ID" width="100" />
-      <el-table-column prop="jobTitle" label="职称" width="140" show-overflow-tooltip />
-      <el-table-column prop="specialty" label="专长" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="registrationFee" label="挂号费" width="100" />
-      <el-table-column prop="schedule" label="出诊安排" min-width="160" show-overflow-tooltip />
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-select v-model="filters.deptId" placeholder="科室" clearable style="width: 220px" @change="resetAndSearch">
+            <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
+          </el-select>
+          <el-input v-model="filters.keyword" placeholder="关键词（用户名/姓名/手机号）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+        <div class="admin-toolbar__group">
+          <div class="admin-toolbar__meta">突出医生档案的专业性与可维护性</div>
+          <el-button type="primary" @click="openCreate">新增医生</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="doctorId" label="ID" width="90" />
+        <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column prop="username" label="用户名" width="140" />
+        <el-table-column prop="realName" label="姓名" width="140" />
+        <el-table-column prop="phone" label="手机号" width="140" />
+        <el-table-column prop="deptId" label="科室ID" width="100" />
+        <el-table-column prop="jobTitle" label="职称" width="140" show-overflow-tooltip />
+        <el-table-column prop="specialty" label="专长" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="registrationFee" label="挂号费" width="100" />
+        <el-table-column prop="schedule" label="出诊安排" min-width="160" show-overflow-tooltip />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增医生' : '编辑医生'" width="760px">
     <el-form ref="editFormRef" :model="editForm" label-width="100px" :disabled="editLoading">

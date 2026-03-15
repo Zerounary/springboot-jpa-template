@@ -136,129 +136,161 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-      <el-select v-model="filters.payStatus" placeholder="支付状态" clearable style="width: 140px" @change="resetAndSearch">
-        <el-option :value="0" label="未支付" />
-        <el-option :value="1" label="已支付" />
-        <el-option :value="2" label="已退款" />
-      </el-select>
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">挂号管理</div>
+          <div class="admin-section__subtitle">统一跟踪预约、支付、取消和就诊状态</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 条挂号</div>
+      </div>
 
-      <el-select
-        v-model="filters.registrationStatus"
-        placeholder="挂号状态"
-        clearable
-        style="width: 140px"
-        @change="resetAndSearch"
-      >
-        <el-option :value="0" label="待就诊" />
-        <el-option :value="1" label="已就诊" />
-        <el-option :value="2" label="已取消" />
-      </el-select>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前数据量</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">适合按状态、科室和时间筛选</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">流程关键点</div>
+          <div class="admin-stat-soft__value">支付与就诊</div>
+          <div class="admin-stat-soft__desc">确保挂号链路状态清晰且可操作</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">后台目标</div>
+          <div class="admin-stat-soft__value">高效流转</div>
+          <div class="admin-stat-soft__desc">帮助医院前台与管理岗协同处理预约记录</div>
+        </div>
+      </div>
+    </section>
 
-      <el-select v-model="filters.deptId" placeholder="科室" clearable style="width: 200px" @change="() => { loadDoctorOptions(); resetAndSearch() }">
-        <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
-      </el-select>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-select v-model="filters.payStatus" placeholder="支付状态" clearable style="width: 140px" @change="resetAndSearch">
+            <el-option :value="0" label="未支付" />
+            <el-option :value="1" label="已支付" />
+            <el-option :value="2" label="已退款" />
+          </el-select>
 
-      <el-select
-        v-if="isAdmin"
-        v-model="filters.doctorId"
-        placeholder="医生"
-        clearable
-        filterable
-        style="width: 180px"
-        @change="resetAndSearch"
-      >
-        <el-option v-for="d in doctorOptions" :key="d.value" :value="d.value" :label="d.label" />
-      </el-select>
-
-      <el-input
-        v-if="isAdmin"
-        v-model="filters.patientId"
-        placeholder="患者ID"
-        clearable
-        style="width: 140px"
-        @keyup.enter="resetAndSearch"
-      />
-
-      <el-date-picker
-        v-model="filters.dateFrom"
-        type="date"
-        value-format="YYYY-MM-DD"
-        placeholder="开始日期"
-        style="width: 140px"
-        @change="resetAndSearch"
-      />
-      <el-date-picker
-        v-model="filters.dateTo"
-        type="date"
-        value-format="YYYY-MM-DD"
-        placeholder="结束日期"
-        style="width: 140px"
-        @change="resetAndSearch"
-      />
-
-      <el-button type="primary" @click="resetAndSearch">查询</el-button>
-    </div>
-
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="registrationId" label="ID" width="90" />
-      <el-table-column prop="registrationNo" label="挂号单号" width="190" />
-      <el-table-column prop="scheduleDate" label="日期" width="120" />
-      <el-table-column prop="timeSlot" label="时段" width="100" />
-      <el-table-column prop="deptId" label="科室ID" width="100" />
-      <el-table-column prop="doctorRealName" label="医生" width="120" />
-      <el-table-column prop="patientRealName" label="患者" width="120" />
-      <el-table-column prop="registrationFee" label="费用" width="90" />
-      <el-table-column label="支付状态" width="100">
-        <template #default="{ row }">{{ payStatusText(row.payStatus) }}</template>
-      </el-table-column>
-      <el-table-column label="挂号状态" width="100">
-        <template #default="{ row }">{{ registrationStatusText(row.registrationStatus) }}</template>
-      </el-table-column>
-      <el-table-column prop="visitSerialNumber" label="序号" width="90" />
-      <el-table-column prop="createTime" label="创建时间" width="170" />
-      <el-table-column label="操作" width="260" fixed="right">
-        <template #default="{ row }">
-          <el-button
-            size="small"
-            type="success"
-            :disabled="row.registrationStatus !== 0 || row.payStatus !== 0"
-            @click="doPay(row)"
+          <el-select
+            v-model="filters.registrationStatus"
+            placeholder="挂号状态"
+            clearable
+            style="width: 140px"
+            @change="resetAndSearch"
           >
-            支付
-          </el-button>
-          <el-button
-            size="small"
-            type="warning"
-            :disabled="row.registrationStatus !== 0"
-            @click="doCancel(row)"
-          >
-            取消
-          </el-button>
-          <el-button
-            size="small"
-            type="primary"
-            :disabled="row.registrationStatus !== 0"
-            @click="doVisit(row)"
-          >
-            就诊
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+            <el-option :value="0" label="待就诊" />
+            <el-option :value="1" label="已就诊" />
+            <el-option :value="2" label="已取消" />
+          </el-select>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+          <el-select v-model="filters.deptId" placeholder="科室" clearable style="width: 200px" @change="() => { loadDoctorOptions(); resetAndSearch() }">
+            <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
+          </el-select>
+
+          <el-select
+            v-if="isAdmin"
+            v-model="filters.doctorId"
+            placeholder="医生"
+            clearable
+            filterable
+            style="width: 180px"
+            @change="resetAndSearch"
+          >
+            <el-option v-for="d in doctorOptions" :key="d.value" :value="d.value" :label="d.label" />
+          </el-select>
+
+          <el-input
+            v-if="isAdmin"
+            v-model="filters.patientId"
+            placeholder="患者ID"
+            clearable
+            style="width: 140px"
+            @keyup.enter="resetAndSearch"
+          />
+
+          <el-date-picker
+            v-model="filters.dateFrom"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="开始日期"
+            style="width: 140px"
+            @change="resetAndSearch"
+          />
+          <el-date-picker
+            v-model="filters.dateTo"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="结束日期"
+            style="width: 140px"
+            @change="resetAndSearch"
+          />
+
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="registrationId" label="ID" width="90" />
+        <el-table-column prop="registrationNo" label="挂号单号" width="190" />
+        <el-table-column prop="scheduleDate" label="日期" width="120" />
+        <el-table-column prop="timeSlot" label="时段" width="100" />
+        <el-table-column prop="deptId" label="科室ID" width="100" />
+        <el-table-column prop="doctorRealName" label="医生" width="120" />
+        <el-table-column prop="patientRealName" label="患者" width="120" />
+        <el-table-column prop="registrationFee" label="费用" width="90" />
+        <el-table-column label="支付状态" width="100">
+          <template #default="{ row }">{{ payStatusText(row.payStatus) }}</template>
+        </el-table-column>
+        <el-table-column label="挂号状态" width="100">
+          <template #default="{ row }">{{ registrationStatusText(row.registrationStatus) }}</template>
+        </el-table-column>
+        <el-table-column prop="visitSerialNumber" label="序号" width="90" />
+        <el-table-column prop="createTime" label="创建时间" width="170" />
+        <el-table-column label="操作" width="260" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              type="success"
+              :disabled="row.registrationStatus !== 0 || row.payStatus !== 0"
+              @click="doPay(row)"
+            >
+              支付
+            </el-button>
+            <el-button
+              size="small"
+              type="warning"
+              :disabled="row.registrationStatus !== 0"
+              @click="doCancel(row)"
+            >
+              取消
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="row.registrationStatus !== 0"
+              @click="doVisit(row)"
+            >
+              就诊
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 </template>

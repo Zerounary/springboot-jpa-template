@@ -131,67 +131,100 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between">
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-        <el-input-number v-model="filters.patientId" :min="1" placeholder="患者ID" style="width: 140px" @change="resetAndSearch" />
-
-        <el-date-picker
-          v-model="filters.dateFrom"
-          type="datetime"
-          value-format="YYYY-MM-DDTHH:mm:ss"
-          placeholder="开始时间"
-          style="width: 180px"
-          @change="resetAndSearch"
-        />
-        <el-date-picker
-          v-model="filters.dateTo"
-          type="datetime"
-          value-format="YYYY-MM-DDTHH:mm:ss"
-          placeholder="结束时间"
-          style="width: 180px"
-          @change="resetAndSearch"
-        />
-
-        <el-button type="primary" @click="resetAndSearch">查询</el-button>
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">健康数据管理</div>
+          <div class="admin-section__subtitle">统一查看患者血压、血糖、体温、心率与体重等监测记录</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 条监测数据</div>
       </div>
 
-      <el-button type="primary" @click="openCreate">新增健康数据</el-button>
-    </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前记录数</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">支持按患者与时间区间快速筛选</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">监测重点</div>
+          <div class="admin-stat-soft__value">多指标留痕</div>
+          <div class="admin-stat-soft__desc">覆盖血压、血糖、心率、体温、体重等常见健康指标</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">管理目标</div>
+          <div class="admin-stat-soft__value">趋势支撑</div>
+          <div class="admin-stat-soft__desc">为患者健康追踪与临床判断提供结构化数据</div>
+        </div>
+      </div>
+    </section>
 
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="monitorId" label="ID" width="90" />
-      <el-table-column prop="monitorDate" label="监测时间" width="170" />
-      <el-table-column prop="patientId" label="患者ID" width="100" />
-      <el-table-column prop="patientRealName" label="患者" width="120" />
-      <el-table-column prop="systolicPressure" label="收缩压" width="90" />
-      <el-table-column prop="diastolicPressure" label="舒张压" width="90" />
-      <el-table-column prop="bloodGlucose" label="血糖" width="90" />
-      <el-table-column prop="heartRate" label="心率" width="90" />
-      <el-table-column prop="bodyTemperature" label="体温" width="90" />
-      <el-table-column prop="weight" label="体重" width="90" />
-      <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openDetail(row)">详情</el-button>
-          <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-input-number v-model="filters.patientId" :min="1" placeholder="患者ID" style="width: 140px" @change="resetAndSearch" />
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+          <el-date-picker
+            v-model="filters.dateFrom"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            placeholder="开始时间"
+            style="width: 180px"
+            @change="resetAndSearch"
+          />
+          <el-date-picker
+            v-model="filters.dateTo"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            placeholder="结束时间"
+            style="width: 180px"
+            @change="resetAndSearch"
+          />
+
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
+
+        <div class="admin-toolbar__group">
+          <div class="admin-toolbar__meta">支持新增、查看与删除健康监测数据</div>
+          <el-button type="primary" @click="openCreate">新增健康数据</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="monitorId" label="ID" width="90" />
+        <el-table-column prop="monitorDate" label="监测时间" width="170" />
+        <el-table-column prop="patientId" label="患者ID" width="100" />
+        <el-table-column prop="patientRealName" label="患者" width="120" />
+        <el-table-column prop="systolicPressure" label="收缩压" width="90" />
+        <el-table-column prop="diastolicPressure" label="舒张压" width="90" />
+        <el-table-column prop="bloodGlucose" label="血糖" width="90" />
+        <el-table-column prop="heartRate" label="心率" width="90" />
+        <el-table-column prop="bodyTemperature" label="体温" width="90" />
+        <el-table-column prop="weight" label="体重" width="90" />
+        <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row)">详情</el-button>
+            <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-dialog v-model="detailVisible" title="健康数据详情" width="760px">
     <div v-loading="detailLoading">

@@ -137,119 +137,151 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-      <el-input
-        v-model="filters.keyword"
-        placeholder="关键词（姓名/手机号/诊断等）"
-        clearable
-        style="width: 240px"
-        @keyup.enter="resetAndSearch"
-      />
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">电子病历</div>
+          <div class="admin-section__subtitle">围绕诊断、主诉与诊疗过程统一管理病历信息</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 份病历</div>
+      </div>
 
-      <el-select v-model="filters.recordStatus" placeholder="病历状态" clearable style="width: 140px" @change="resetAndSearch">
-        <el-option :value="0" label="草稿" />
-        <el-option :value="1" label="已完成" />
-      </el-select>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前病历数</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">支持按时间、科室、医生、患者等维度检索</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">核心动作</div>
+          <div class="admin-stat-soft__value">查看与归档</div>
+          <div class="admin-stat-soft__desc">支持查看详情、完成病历与删除病历</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">后台原则</div>
+          <div class="admin-stat-soft__value">准确留痕</div>
+          <div class="admin-stat-soft__desc">强化医疗信息的结构化与完整性</div>
+        </div>
+      </div>
+    </section>
 
-      <el-select v-model="filters.deptId" placeholder="科室" clearable style="width: 200px" @change="() => { loadDoctorOptions(); resetAndSearch() }">
-        <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
-      </el-select>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-input
+            v-model="filters.keyword"
+            placeholder="关键词（姓名/手机号/诊断等）"
+            clearable
+            style="width: 240px"
+            @keyup.enter="resetAndSearch"
+          />
 
-      <el-select
-        v-if="isAdmin"
-        v-model="filters.doctorId"
-        placeholder="医生"
-        clearable
-        filterable
-        style="width: 180px"
-        @change="resetAndSearch"
-      >
-        <el-option v-for="d in doctorOptions" :key="d.value" :value="d.value" :label="d.label" />
-      </el-select>
+          <el-select v-model="filters.recordStatus" placeholder="病历状态" clearable style="width: 140px" @change="resetAndSearch">
+            <el-option :value="0" label="草稿" />
+            <el-option :value="1" label="已完成" />
+          </el-select>
 
-      <el-input
-        v-if="isAdmin"
-        v-model="filters.patientId"
-        placeholder="患者ID"
-        clearable
-        style="width: 140px"
-        @keyup.enter="resetAndSearch"
-      />
+          <el-select v-model="filters.deptId" placeholder="科室" clearable style="width: 200px" @change="() => { loadDoctorOptions(); resetAndSearch() }">
+            <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
+          </el-select>
 
-      <el-input
-        v-model="filters.registrationId"
-        placeholder="挂号ID"
-        clearable
-        style="width: 140px"
-        @keyup.enter="resetAndSearch"
-      />
-
-      <el-date-picker
-        v-model="filters.visitFrom"
-        type="datetime"
-        value-format="YYYY-MM-DDTHH:mm:ss"
-        placeholder="就诊开始"
-        style="width: 180px"
-        @change="resetAndSearch"
-      />
-      <el-date-picker
-        v-model="filters.visitTo"
-        type="datetime"
-        value-format="YYYY-MM-DDTHH:mm:ss"
-        placeholder="就诊结束"
-        style="width: 180px"
-        @change="resetAndSearch"
-      />
-
-      <el-button type="primary" @click="resetAndSearch">查询</el-button>
-    </div>
-
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="recordId" label="ID" width="90" />
-      <el-table-column prop="visitDate" label="就诊时间" width="170" />
-      <el-table-column prop="deptId" label="科室ID" width="100" />
-      <el-table-column prop="registrationId" label="挂号ID" width="100" />
-      <el-table-column prop="doctorRealName" label="医生" width="120" />
-      <el-table-column prop="patientRealName" label="患者" width="120" />
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.recordStatus === 1 ? 'success' : 'info'">
-            {{ recordStatusText(row.recordStatus) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="diagnosis" label="诊断" min-width="220" show-overflow-tooltip />
-      <el-table-column prop="updateTime" label="更新时间" width="170" />
-      <el-table-column label="操作" width="260" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openDetail(row)">详情</el-button>
-          <el-button
-            size="small"
-            type="primary"
-            :disabled="row.recordStatus === 1"
-            @click="doComplete(row)"
+          <el-select
+            v-if="isAdmin"
+            v-model="filters.doctorId"
+            placeholder="医生"
+            clearable
+            filterable
+            style="width: 180px"
+            @change="resetAndSearch"
           >
-            完成
-          </el-button>
-          <el-button v-if="isAdmin" size="small" type="danger" @click="doDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+            <el-option v-for="d in doctorOptions" :key="d.value" :value="d.value" :label="d.label" />
+          </el-select>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+          <el-input
+            v-if="isAdmin"
+            v-model="filters.patientId"
+            placeholder="患者ID"
+            clearable
+            style="width: 140px"
+            @keyup.enter="resetAndSearch"
+          />
+
+          <el-input
+            v-model="filters.registrationId"
+            placeholder="挂号ID"
+            clearable
+            style="width: 140px"
+            @keyup.enter="resetAndSearch"
+          />
+
+          <el-date-picker
+            v-model="filters.visitFrom"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            placeholder="就诊开始"
+            style="width: 180px"
+            @change="resetAndSearch"
+          />
+          <el-date-picker
+            v-model="filters.visitTo"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            placeholder="就诊结束"
+            style="width: 180px"
+            @change="resetAndSearch"
+          />
+
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="recordId" label="ID" width="90" />
+        <el-table-column prop="visitDate" label="就诊时间" width="170" />
+        <el-table-column prop="deptId" label="科室ID" width="100" />
+        <el-table-column prop="registrationId" label="挂号ID" width="100" />
+        <el-table-column prop="doctorRealName" label="医生" width="120" />
+        <el-table-column prop="patientRealName" label="患者" width="120" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.recordStatus === 1 ? 'success' : 'info'">
+              {{ recordStatusText(row.recordStatus) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="diagnosis" label="诊断" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="updateTime" label="更新时间" width="170" />
+        <el-table-column label="操作" width="260" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row)">详情</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="row.recordStatus === 1"
+              @click="doComplete(row)"
+            >
+              完成
+            </el-button>
+            <el-button v-if="isAdmin" size="small" type="danger" @click="doDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-dialog v-model="detailVisible" title="病历详情" width="720px">
     <div v-loading="detailLoading">

@@ -184,111 +184,144 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between">
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-        <el-input
-          v-model="filters.title"
-          placeholder="标题"
-          clearable
-          style="width: 240px"
-          @keyup.enter="resetAndSearch"
-        />
-
-        <el-select v-if="isAdmin" v-model="filters.status" placeholder="状态" clearable style="width: 140px" @change="resetAndSearch">
-          <el-option :value="1" label="已发布" />
-          <el-option :value="2" label="未发布" />
-        </el-select>
-
-        <el-select v-if="isAdmin" v-model="filters.isTop" placeholder="置顶" clearable style="width: 140px" @change="resetAndSearch">
-          <el-option :value="1" label="置顶" />
-          <el-option :value="0" label="不置顶" />
-        </el-select>
-
-        <el-button type="primary" @click="resetAndSearch">查询</el-button>
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">资讯管理</div>
+          <div class="admin-section__subtitle">统一管理医院公告、健康资讯与内容发布状态</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 条资讯</div>
       </div>
 
-      <el-button v-if="isAdmin" type="primary" @click="openCreate">新增资讯</el-button>
-    </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前资讯数</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">支持按标题、发布状态与置顶状态检索</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">内容场景</div>
+          <div class="admin-stat-soft__value">公告与宣教</div>
+          <div class="admin-stat-soft__desc">兼顾医院通知、健康知识传播与品牌形象表达</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">运营目标</div>
+          <div class="admin-stat-soft__value">清晰发布</div>
+          <div class="admin-stat-soft__desc">让内容创建、上架、下架、置顶流程一目了然</div>
+        </div>
+      </div>
+    </section>
 
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="newsId" label="ID" width="90" />
-      <el-table-column prop="title" label="标题" min-width="260" show-overflow-tooltip />
-      <el-table-column prop="author" label="作者" width="120" />
-      <el-table-column label="状态" width="110">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ statusText(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="置顶" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.isTop === 1 ? 'warning' : 'info'">{{ row.isTop === 1 ? '是' : '否' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="viewCount" label="浏览" width="90" />
-      <el-table-column prop="publishTime" label="发布时间" width="170" />
-      <el-table-column prop="updateTime" label="更新时间" width="170" />
-      <el-table-column label="操作" width="340" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openDetail(row)">详情</el-button>
-          <el-button v-if="isAdmin" size="small" @click="openEdit(row)">编辑</el-button>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-input
+            v-model="filters.title"
+            placeholder="标题"
+            clearable
+            style="width: 240px"
+            @keyup.enter="resetAndSearch"
+          />
 
-          <el-button
-            v-if="isAdmin"
-            size="small"
-            type="success"
-            :disabled="row.status === 1"
-            @click="doPublish(row)"
-          >
-            发布
-          </el-button>
-          <el-button
-            v-if="isAdmin"
-            size="small"
-            type="warning"
-            :disabled="row.status !== 1"
-            @click="doUnpublish(row)"
-          >
-            下架
-          </el-button>
+          <el-select v-if="isAdmin" v-model="filters.status" placeholder="状态" clearable style="width: 140px" @change="resetAndSearch">
+            <el-option :value="1" label="已发布" />
+            <el-option :value="2" label="未发布" />
+          </el-select>
 
-          <el-button
-            v-if="isAdmin"
-            size="small"
-            type="primary"
-            :disabled="row.isTop === 1"
-            @click="doTop(row)"
-          >
-            置顶
-          </el-button>
-          <el-button
-            v-if="isAdmin"
-            size="small"
-            type="info"
-            :disabled="row.isTop !== 1"
-            @click="doUntop(row)"
-          >
-            取消置顶
-          </el-button>
+          <el-select v-if="isAdmin" v-model="filters.isTop" placeholder="置顶" clearable style="width: 140px" @change="resetAndSearch">
+            <el-option :value="1" label="置顶" />
+            <el-option :value="0" label="不置顶" />
+          </el-select>
 
-          <el-button v-if="isAdmin" size="small" type="danger" @click="doDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+        <div class="admin-toolbar__group">
+          <div class="admin-toolbar__meta">支持新增、编辑、发布、下架与置顶资讯</div>
+          <el-button v-if="isAdmin" type="primary" @click="openCreate">新增资讯</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="newsId" label="ID" width="90" />
+        <el-table-column prop="title" label="标题" min-width="260" show-overflow-tooltip />
+        <el-table-column prop="author" label="作者" width="120" />
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ statusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="置顶" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.isTop === 1 ? 'warning' : 'info'">{{ row.isTop === 1 ? '是' : '否' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="viewCount" label="浏览" width="90" />
+        <el-table-column prop="publishTime" label="发布时间" width="170" />
+        <el-table-column prop="updateTime" label="更新时间" width="170" />
+        <el-table-column label="操作" width="340" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row)">详情</el-button>
+            <el-button v-if="isAdmin" size="small" @click="openEdit(row)">编辑</el-button>
+
+            <el-button
+              v-if="isAdmin"
+              size="small"
+              type="success"
+              :disabled="row.status === 1"
+              @click="doPublish(row)"
+            >
+              发布
+            </el-button>
+            <el-button
+              v-if="isAdmin"
+              size="small"
+              type="warning"
+              :disabled="row.status !== 1"
+              @click="doUnpublish(row)"
+            >
+              下架
+            </el-button>
+
+            <el-button
+              v-if="isAdmin"
+              size="small"
+              type="primary"
+              :disabled="row.isTop === 1"
+              @click="doTop(row)"
+            >
+              置顶
+            </el-button>
+            <el-button
+              v-if="isAdmin"
+              size="small"
+              type="info"
+              :disabled="row.isTop !== 1"
+              @click="doUntop(row)"
+            >
+              取消置顶
+            </el-button>
+
+            <el-button v-if="isAdmin" size="small" type="danger" @click="doDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-dialog v-model="detailVisible" title="资讯详情" width="860px">
     <div v-loading="detailLoading">

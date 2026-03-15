@@ -162,51 +162,84 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap">
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-        <el-input v-model="keyword" placeholder="关键词（用户名/姓名/手机号）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
-        <el-button type="primary" @click="resetAndSearch">查询</el-button>
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">患者管理</div>
+          <div class="admin-section__subtitle">维护患者基础档案、紧急联系人与健康背景信息</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 位患者</div>
       </div>
 
-      <el-button type="primary" @click="openCreate">新增患者</el-button>
-    </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前患者数</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">支持按用户名、姓名、手机号快速检索</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">档案重点</div>
+          <div class="admin-stat-soft__value">基础信息</div>
+          <div class="admin-stat-soft__desc">统一维护年龄、血型、婚姻状态与紧急联系人</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">服务目标</div>
+          <div class="admin-stat-soft__value">连续管理</div>
+          <div class="admin-stat-soft__desc">为挂号、病历与健康监测提供完整患者主数据</div>
+        </div>
+      </div>
+    </section>
 
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="patientId" label="患者ID" width="100" />
-      <el-table-column prop="userId" label="用户ID" width="100" />
-      <el-table-column prop="username" label="用户名" width="140" />
-      <el-table-column prop="realName" label="姓名" width="140" />
-      <el-table-column label="性别" width="90">
-        <template #default="{ row }">{{ genderText(row.gender) }}</template>
-      </el-table-column>
-      <el-table-column prop="phone" label="手机号" width="140" />
-      <el-table-column prop="birthDate" label="生日" width="120" />
-      <el-table-column prop="age" label="年龄" width="90" />
-      <el-table-column prop="bloodType" label="血型" width="100" />
-      <el-table-column prop="maritalStatus" label="婚姻" width="90" />
-      <el-table-column prop="updateTime" label="更新时间" width="170" />
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-input v-model="keyword" placeholder="关键词（用户名/姓名/手机号）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+        <div class="admin-toolbar__group">
+          <div class="admin-toolbar__meta">支持新增、编辑与删除患者档案</div>
+          <el-button type="primary" @click="openCreate">新增患者</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="patientId" label="患者ID" width="100" />
+        <el-table-column prop="userId" label="用户ID" width="100" />
+        <el-table-column prop="username" label="用户名" width="140" />
+        <el-table-column prop="realName" label="姓名" width="140" />
+        <el-table-column label="性别" width="90">
+          <template #default="{ row }">{{ genderText(row.gender) }}</template>
+        </el-table-column>
+        <el-table-column prop="phone" label="手机号" width="140" />
+        <el-table-column prop="birthDate" label="生日" width="120" />
+        <el-table-column prop="age" label="年龄" width="90" />
+        <el-table-column prop="bloodType" label="血型" width="100" />
+        <el-table-column prop="maritalStatus" label="婚姻" width="90" />
+        <el-table-column prop="updateTime" label="更新时间" width="170" />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增患者' : '编辑患者'" width="760px">
     <el-form ref="editFormRef" :model="editForm" label-width="110px" :disabled="editLoading">

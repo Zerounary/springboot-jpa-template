@@ -20,13 +20,13 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="login-page">
-    <el-card class="login-card" shadow="always">
-      <template #header>
-        <div class="login-title">系统登录</div>
-      </template>
+  <div class="admin-login-page">
+    <div class="admin-login-card">
+      <div class="admin-login-mark">医</div>
+      <div class="admin-login-title">医院后台登录</div>
+      <div class="admin-login-subtitle">面向医院运营、挂号管理、病历维护与用户管理的一体化工作台入口。</div>
 
-      <el-form :model="form" label-position="top" @submit.prevent>
+      <el-form :model="form" label-position="top" @submit.prevent style="margin-top: 22px">
         <el-form-item label="用户名">
           <el-input v-model="form.username" autocomplete="username" />
         </el-form-item>
@@ -39,27 +39,6 @@ async function onSubmit() {
           </el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
   </div>
 </template>
-
-<style scoped>
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: #f5f7fa;
-}
-
-.login-card {
-  width: 420px;
-  max-width: 100%;
-}
-
-.login-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-</style>

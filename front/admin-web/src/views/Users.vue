@@ -174,53 +174,86 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card>
-    <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap">
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
-        <el-input v-model="keyword" placeholder="关键词（用户名/昵称）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
-        <el-button type="primary" @click="resetAndSearch">查询</el-button>
+  <div class="admin-page">
+    <section class="admin-section">
+      <div class="admin-section__head">
+        <div>
+          <div class="admin-section__title">用户管理</div>
+          <div class="admin-section__subtitle">统一管理账号、身份角色、状态和基础信息</div>
+        </div>
+        <div class="admin-note">共 {{ total }} 位用户</div>
       </div>
 
-      <el-button type="primary" @click="openCreate">新增用户</el-button>
-    </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">当前列表总数</div>
+          <div class="admin-stat-soft__value">{{ total }}</div>
+          <div class="admin-stat-soft__desc">支持分页查看与快速检索</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">管理范围</div>
+          <div class="admin-stat-soft__value">账号与角色</div>
+          <div class="admin-stat-soft__desc">管理员、医生、患者统一纳入管理</div>
+        </div>
+        <div class="admin-stat-soft">
+          <div class="admin-stat-soft__label">工作目标</div>
+          <div class="admin-stat-soft__value">信息清晰</div>
+          <div class="admin-stat-soft__desc">保证账号信息维护有序、可追踪</div>
+        </div>
+      </div>
+    </section>
 
-    <el-table :data="records" v-loading="loading" style="width: 100%; margin-top: 12px">
-      <el-table-column prop="id" label="ID" width="90" />
-      <el-table-column prop="username" label="用户名" width="140" />
-      <el-table-column prop="nickname" label="昵称" width="140" />
-      <el-table-column prop="realName" label="姓名" width="140" />
-      <el-table-column prop="phone" label="手机号" width="140" />
-      <el-table-column label="角色" width="110">
-        <template #default="{ row }">{{ roleText(row.roleType) }}</template>
-      </el-table-column>
-      <el-table-column label="状态" width="110">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ statusText(row.status) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="170" />
-      <el-table-column prop="updatedAt" label="更新时间" width="170" />
-      <el-table-column label="操作" width="180" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card class="admin-table-card">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar__group">
+          <el-input v-model="keyword" placeholder="关键词（用户名/昵称）" clearable style="width: 240px" @keyup.enter="resetAndSearch" />
+          <el-button type="primary" @click="resetAndSearch">查询</el-button>
+        </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="total"
-        :page-size="size"
-        :page-sizes="[10, 20, 50]"
-        :current-page="page + 1"
-        @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-        @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
-      />
-    </div>
-  </el-card>
+        <div class="admin-toolbar__group">
+          <div class="admin-toolbar__meta">支持新增、编辑、删除用户</div>
+          <el-button type="primary" @click="openCreate">新增用户</el-button>
+        </div>
+      </div>
+
+      <el-table :data="records" v-loading="loading" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="90" />
+        <el-table-column prop="username" label="用户名" width="140" />
+        <el-table-column prop="nickname" label="昵称" width="140" />
+        <el-table-column prop="realName" label="姓名" width="140" />
+        <el-table-column prop="phone" label="手机号" width="140" />
+        <el-table-column label="角色" width="110">
+          <template #default="{ row }">{{ roleText(row.roleType) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ statusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" width="170" />
+        <el-table-column prop="updatedAt" label="更新时间" width="170" />
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="doDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="total"
+          :page-size="size"
+          :page-sizes="[10, 20, 50]"
+          :current-page="page + 1"
+          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增用户' : '编辑用户'" width="720px">
     <el-form ref="editFormRef" :model="editForm" label-width="90px" :disabled="editLoading">

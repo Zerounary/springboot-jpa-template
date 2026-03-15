@@ -32,13 +32,12 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="login-page">
-    <el-card class="login-card" shadow="always">
-      <template #header>
-        <div class="login-title">患者端登录</div>
-      </template>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-title">患者端登录</div>
+      <div class="auth-subtitle">使用患者账号登录后，可进行挂号、病历查询和健康数据记录。</div>
 
-      <el-form :model="form" label-position="top" @submit.prevent>
+      <el-form :model="form" label-position="top" @submit.prevent style="margin-top: 18px">
         <el-form-item label="用户名">
           <el-input v-model="form.username" autocomplete="username" />
         </el-form-item>
@@ -55,30 +54,9 @@ async function onSubmit() {
         </el-form-item>
 
         <el-form-item>
-          <el-button style="width: 100%" @click="$router.push('/register')">没有账号？去注册</el-button>
+          <el-button @click="$router.push('/register')">没有账号？去注册</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
   </div>
-</template>
-
-<style scoped>
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: #f5f7fa;
-}
-
-.login-card {
-  width: 420px;
-  max-width: 100%;
-}
-
-.login-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-</style>
+ </template>

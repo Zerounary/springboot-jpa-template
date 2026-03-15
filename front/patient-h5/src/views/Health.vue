@@ -145,128 +145,115 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <el-card shadow="never">
-    <div style="font-weight: 600; margin-bottom: 8px">健康监测</div>
+  <div class="page-stack">
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">健康监测</div>
+          <div class="section-subtitle">随手记录关键体征数据，适合手机端快速录入</div>
+        </div>
+      </div>
 
-    <el-form label-position="top" @submit.prevent>
-      <el-form-item label="监测时间">
-        <el-date-picker v-model="form.monitorDate" type="datetime" placeholder="选择时间" style="width: 100%" />
-      </el-form-item>
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="监测时间">
+          <el-date-picker v-model="form.monitorDate" type="datetime" placeholder="选择时间" style="width: 100%" />
+        </el-form-item>
 
-      <el-row :gutter="8">
-        <el-col :span="12">
-          <el-form-item label="收缩压">
-            <el-input-number v-model="form.systolicPressure" :min="0" style="width: 100%" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="舒张压">
-            <el-input-number v-model="form.diastolicPressure" :min="0" style="width: 100%" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+        <el-row :gutter="8">
+          <el-col :span="12">
+            <el-form-item label="收缩压">
+              <el-input-number v-model="form.systolicPressure" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="舒张压">
+              <el-input-number v-model="form.diastolicPressure" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-      <el-row :gutter="8">
-        <el-col :span="12">
-          <el-form-item label="血糖(mmol/L)">
-            <el-input-number v-model="form.bloodGlucose" :min="0" :step="0.1" style="width: 100%" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="心率">
-            <el-input-number v-model="form.heartRate" :min="0" style="width: 100%" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+        <el-row :gutter="8">
+          <el-col :span="12">
+            <el-form-item label="血糖(mmol/L)">
+              <el-input-number v-model="form.bloodGlucose" :min="0" :step="0.1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="心率">
+              <el-input-number v-model="form.heartRate" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-      <el-row :gutter="8">
-        <el-col :span="12">
-          <el-form-item label="体温(℃)">
-            <el-input-number v-model="form.bodyTemperature" :min="0" :step="0.1" style="width: 100%" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="体重(kg)">
-            <el-input-number v-model="form.weight" :min="0" :step="0.1" style="width: 100%" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+        <el-row :gutter="8">
+          <el-col :span="12">
+            <el-form-item label="体温(℃)">
+              <el-input-number v-model="form.bodyTemperature" :min="0" :step="0.1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="体重(kg)">
+              <el-input-number v-model="form.weight" :min="0" :step="0.1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-      <el-form-item label="备注">
-        <el-input v-model="form.remark" maxlength="255" show-word-limit clearable />
-      </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="form.remark" maxlength="255" show-word-limit clearable />
+        </el-form-item>
 
-      <el-form-item>
-        <el-button type="primary" style="width: 100%" :loading="loadingCreate" @click="createOne">保存</el-button>
-      </el-form-item>
-    </el-form>
-  </el-card>
+        <el-form-item>
+          <el-button type="primary" style="width: 100%" :loading="loadingCreate" @click="createOne">保存记录</el-button>
+        </el-form-item>
+      </el-form>
+    </section>
 
-  <div style="height: 12px" />
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">趋势图</div>
+          <div class="section-subtitle">基于当前页历史数据展示变化趋势</div>
+        </div>
+      </div>
+      <div ref="chartEl" style="height: 260px; width: 100%" />
+    </section>
 
-  <el-card shadow="never">
-    <div style="font-weight: 600; margin-bottom: 8px">趋势图（当前页数据）</div>
-    <div ref="chartEl" style="height: 260px; width: 100%" />
-  </el-card>
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">历史记录</div>
+          <div class="section-subtitle">查看并管理既往健康监测记录</div>
+        </div>
+        <div class="mobile-accent">共 {{ total }} 条</div>
+      </div>
 
-  <div style="height: 12px" />
+      <el-skeleton :loading="loadingList" animated>
+        <template #default>
+          <div v-if="list.length === 0" class="empty-text">暂无健康记录</div>
 
-  <el-card shadow="never">
-    <div style="font-weight: 600; margin-bottom: 8px">历史记录</div>
-
-    <el-skeleton :loading="loadingList" animated>
-      <template #default>
-        <div v-if="list.length === 0" style="color: #909399">暂无数据</div>
-
-        <div v-for="h in list" :key="h.monitorId" class="hm-card">
-          <div class="row">
-            <div class="title">{{ formatDateTime(h.monitorDate) }}</div>
-            <el-button size="small" type="danger" plain @click="removeOne(h)">删除</el-button>
+          <div v-for="h in list" :key="h.monitorId" class="hm-card">
+            <div class="list-head">
+              <div class="title">{{ formatDateTime(h.monitorDate) }}</div>
+              <el-button size="small" type="danger" plain @click="removeOne(h)">删除</el-button>
+            </div>
+            <div class="meta">血压：{{ h.systolicPressure ?? '-' }}/{{ h.diastolicPressure ?? '-' }}</div>
+            <div class="meta">血糖：{{ h.bloodGlucose ?? '-' }} | 心率：{{ h.heartRate ?? '-' }}</div>
+            <div class="meta">体温：{{ h.bodyTemperature ?? '-' }} | 体重：{{ h.weight ?? '-' }}</div>
+            <div v-if="h.remark" class="meta">备注：{{ h.remark }}</div>
           </div>
-          <div class="meta">血压：{{ h.systolicPressure ?? '-' }}/{{ h.diastolicPressure ?? '-' }}</div>
-          <div class="meta">血糖：{{ h.bloodGlucose ?? '-' }} | 心率：{{ h.heartRate ?? '-' }}</div>
-          <div class="meta">体温：{{ h.bodyTemperature ?? '-' }} | 体重：{{ h.weight ?? '-' }}</div>
-          <div v-if="h.remark" class="meta">备注：{{ h.remark }}</div>
-        </div>
 
-        <div style="display: flex; justify-content: center; margin-top: 12px" v-if="total > size">
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :page-size="size"
-            :total="total"
-            :current-page="page.value + 1"
-            @current-change="onPageChange"
-          />
-        </div>
-      </template>
-    </el-skeleton>
-  </el-card>
+          <div v-if="total > size" style="display: flex; justify-content: center; margin-top: 12px">
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :page-size="size"
+              :total="total"
+              :current-page="page.value + 1"
+              @current-change="onPageChange"
+            />
+          </div>
+        </template>
+      </el-skeleton>
+    </section>
+  </div>
 </template>
-
-<style scoped>
-.hm-card {
-  padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  background: #fff;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.title {
-  font-weight: 700;
-}
-
-.meta {
-  font-size: 12px;
-  color: #606266;
-  line-height: 18px;
-}
-</style>

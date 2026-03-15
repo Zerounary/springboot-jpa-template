@@ -76,89 +76,70 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card shadow="never">
-    <div style="font-weight: 600; margin-bottom: 8px">医生查询</div>
+  <div class="page-stack">
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">医生查询</div>
+          <div class="section-subtitle">按科室与擅长方向筛选合适的医生</div>
+        </div>
+        <div class="mobile-accent">共 {{ total }} 位</div>
+      </div>
 
-    <el-form label-position="top" @submit.prevent>
-      <el-form-item label="关键词（姓名/擅长）">
-        <el-input v-model="keyword" placeholder="请输入关键词" clearable />
-      </el-form-item>
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="关键词（姓名/擅长）">
+          <el-input v-model="keyword" placeholder="请输入关键词" clearable />
+        </el-form-item>
 
-      <el-form-item label="科室">
-        <el-select v-model="deptId" placeholder="全部科室" clearable style="width: 100%">
-          <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.deptName" :value="d.deptId" />
-        </el-select>
-      </el-form-item>
+        <el-form-item label="科室">
+          <el-select v-model="deptId" placeholder="全部科室" clearable style="width: 100%">
+            <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.deptName" :value="d.deptId" />
+          </el-select>
+        </el-form-item>
 
-      <el-form-item>
-        <el-button type="primary" style="width: 100%" :loading="loading" @click="onSearch">查询</el-button>
-      </el-form-item>
-    </el-form>
+        <el-form-item>
+          <el-button type="primary" style="width: 100%" :loading="loading" @click="onSearch">立即查询</el-button>
+        </el-form-item>
+      </el-form>
 
-    <el-divider content-position="left">结果 {{ total }}</el-divider>
+      <div v-if="deptLabel" class="helper-text">当前科室：{{ deptLabel }}</div>
+    </section>
 
-    <el-skeleton :loading="loading" animated>
-      <template #default>
-        <div v-if="list.length === 0" style="color: #909399">暂无数据</div>
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">查询结果</div>
+          <div class="section-subtitle">展示医生基础信息、擅长方向与出诊安排</div>
+        </div>
+      </div>
 
-        <div v-for="d in list" :key="d.doctorId" class="doctor-card">
-          <div class="doctor-title">
-            <div class="name">{{ d.realName || d.username }}</div>
-            <div class="fee">￥{{ d.registrationFee }}</div>
+      <el-skeleton :loading="loading" animated>
+        <template #default>
+          <div v-if="list.length === 0" class="empty-text">暂无符合条件的医生</div>
+
+          <div v-for="d in list" :key="d.doctorId" class="doctor-card">
+            <div class="list-head">
+              <div class="name">{{ d.realName || d.username }}</div>
+              <div class="fee">￥{{ d.registrationFee }}</div>
+            </div>
+            <div class="meta">科室：{{ deptNameMap.get(d.deptId) || d.deptId }}</div>
+            <div class="meta">职称：{{ d.jobTitle }}</div>
+            <div class="meta">擅长：{{ d.specialty }}</div>
+            <div v-if="d.schedule" class="meta">出诊：{{ d.schedule }}</div>
           </div>
-          <div class="meta">科室：{{ deptNameMap.get(d.deptId) || d.deptId }}</div>
-          <div class="meta">职称：{{ d.jobTitle }}</div>
-          <div class="meta">擅长：{{ d.specialty }}</div>
-          <div v-if="d.schedule" class="meta">出诊：{{ d.schedule }}</div>
-        </div>
 
-        <div style="display: flex; justify-content: center; margin-top: 12px" v-if="total > size">
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :page-size="size"
-            :total="total"
-            :current-page="page + 1"
-            @current-change="onPageChange"
-          />
-        </div>
-      </template>
-    </el-skeleton>
-
-    <div v-if="deptLabel" style="margin-top: 8px; color: #909399; font-size: 12px">
-      当前科室：{{ deptLabel }}
-    </div>
-  </el-card>
+          <div v-if="total > size" style="display: flex; justify-content: center; margin-top: 12px">
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :page-size="size"
+              :total="total"
+              :current-page="page + 1"
+              @current-change="onPageChange"
+            />
+          </div>
+        </template>
+      </el-skeleton>
+    </section>
+  </div>
 </template>
-
-<style scoped>
-.doctor-card {
-  padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  background: #fff;
-}
-
-.doctor-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
-}
-
-.name {
-  font-weight: 700;
-}
-
-.fee {
-  font-weight: 600;
-  color: #409eff;
-}
-
-.meta {
-  font-size: 12px;
-  color: #606266;
-  line-height: 18px;
-}
-</style>

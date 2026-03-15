@@ -190,142 +190,113 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card shadow="never">
-    <div style="font-weight: 600; margin-bottom: 8px">在线挂号</div>
-
-    <el-form label-position="top" @submit.prevent>
-      <el-form-item label="科室">
-        <el-select v-model="deptId" placeholder="请选择科室" clearable style="width: 100%">
-          <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.deptName" :value="d.deptId" />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item label="医生">
-        <el-select v-model="doctorId" placeholder="请选择医生" clearable style="width: 100%" :disabled="!deptId">
-          <el-option
-            v-for="d in doctorOptions"
-            :key="d.doctorId"
-            :label="`${d.realName || d.username}（￥${d.registrationFee}）`"
-            :value="d.doctorId"
-          />
-        </el-select>
-        <div v-if="selectedDoctor" style="margin-top: 6px; font-size: 12px; color: #606266">
-          擅长：{{ selectedDoctor.specialty }}
+  <div class="page-stack">
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">在线挂号</div>
+          <div class="section-subtitle">选择科室、医生和就诊时间，快速完成预约</div>
         </div>
-      </el-form-item>
+      </div>
 
-      <el-form-item label="就诊日期">
-        <el-date-picker v-model="createForm.scheduleDate" type="date" placeholder="选择日期" style="width: 100%" />
-      </el-form-item>
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="科室">
+          <el-select v-model="deptId" placeholder="请选择科室" clearable style="width: 100%">
+            <el-option v-for="d in deptOptions" :key="d.deptId" :label="d.deptName" :value="d.deptId" />
+          </el-select>
+        </el-form-item>
 
-      <el-form-item label="就诊时段">
-        <el-segmented v-model="createForm.timeSlot" :options="['上午', '下午', '夜间']" />
-      </el-form-item>
+        <el-form-item label="医生">
+          <el-select v-model="doctorId" placeholder="请选择医生" clearable style="width: 100%" :disabled="!deptId">
+            <el-option
+              v-for="d in doctorOptions"
+              :key="d.doctorId"
+              :label="`${d.realName || d.username}（￥${d.registrationFee}）`"
+              :value="d.doctorId"
+            />
+          </el-select>
+          <div v-if="selectedDoctor" class="helper-text">擅长：{{ selectedDoctor.specialty }}</div>
+        </el-form-item>
 
-      <el-form-item label="备注">
-        <el-input v-model="createForm.remark" maxlength="255" show-word-limit clearable />
-      </el-form-item>
+        <el-form-item label="就诊日期">
+          <el-date-picker v-model="createForm.scheduleDate" type="date" placeholder="选择日期" style="width: 100%" />
+        </el-form-item>
 
-      <el-form-item>
-        <el-button type="primary" style="width: 100%" :loading="loadingCreate" @click="createRegistration">
-          提交挂号
-        </el-button>
-      </el-form-item>
-    </el-form>
-  </el-card>
+        <el-form-item label="就诊时段">
+          <el-segmented v-model="createForm.timeSlot" :options="['上午', '下午', '夜间']" />
+        </el-form-item>
 
-  <div style="height: 12px" />
+        <el-form-item label="备注">
+          <el-input v-model="createForm.remark" maxlength="255" show-word-limit clearable />
+        </el-form-item>
 
-  <el-card shadow="never">
-    <div style="font-weight: 600; margin-bottom: 8px">我的挂号</div>
+        <el-form-item>
+          <el-button type="primary" style="width: 100%" :loading="loadingCreate" @click="createRegistration">
+            提交挂号
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </section>
 
-    <el-row :gutter="8" style="margin-bottom: 8px">
-      <el-col :span="12">
-        <el-select v-model="statusFilter.payStatus" placeholder="支付状态" clearable style="width: 100%" @change="() => { page.value = 0; loadList() }">
-          <el-option label="未支付" :value="0" />
-          <el-option label="已支付" :value="1" />
-          <el-option label="已退款" :value="2" />
-        </el-select>
-      </el-col>
-      <el-col :span="12">
-        <el-select v-model="statusFilter.registrationStatus" placeholder="挂号状态" clearable style="width: 100%" @change="() => { page.value = 0; loadList() }">
-          <el-option label="待就诊" :value="0" />
-          <el-option label="已就诊" :value="1" />
-          <el-option label="已取消" :value="2" />
-          <el-option label="已过期" :value="3" />
-        </el-select>
-      </el-col>
-    </el-row>
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">我的挂号</div>
+          <div class="section-subtitle">查看预约进度、支付状态与历史记录</div>
+        </div>
+        <div class="mobile-accent">共 {{ total }} 条</div>
+      </div>
 
-    <el-skeleton :loading="loadingList" animated>
-      <template #default>
-        <div v-if="list.length === 0" style="color: #909399">暂无数据</div>
+      <el-row :gutter="8" style="margin-bottom: 8px">
+        <el-col :span="12">
+          <el-select v-model="statusFilter.payStatus" placeholder="支付状态" clearable style="width: 100%" @change="() => { page.value = 0; loadList() }">
+            <el-option label="未支付" :value="0" />
+            <el-option label="已支付" :value="1" />
+            <el-option label="已退款" :value="2" />
+          </el-select>
+        </el-col>
+        <el-col :span="12">
+          <el-select v-model="statusFilter.registrationStatus" placeholder="挂号状态" clearable style="width: 100%" @change="() => { page.value = 0; loadList() }">
+            <el-option label="待就诊" :value="0" />
+            <el-option label="已就诊" :value="1" />
+            <el-option label="已取消" :value="2" />
+            <el-option label="已过期" :value="3" />
+          </el-select>
+        </el-col>
+      </el-row>
 
-        <div v-for="r in list" :key="r.registrationId" class="reg-card">
-          <div class="row">
-            <div class="title">{{ r.doctorRealName }}</div>
-            <div class="fee">￥{{ r.registrationFee }}</div>
+      <el-skeleton :loading="loadingList" animated>
+        <template #default>
+          <div v-if="list.length === 0" class="empty-text">暂无挂号记录</div>
+
+          <div v-for="r in list" :key="r.registrationId" class="reg-card">
+            <div class="list-head">
+              <div class="title">{{ r.doctorRealName }}</div>
+              <div class="fee">￥{{ r.registrationFee }}</div>
+            </div>
+            <div class="meta">科室：{{ deptNameMap.get(r.deptId) || r.deptId }}</div>
+            <div class="meta">日期：{{ r.scheduleDate }}（{{ r.timeSlot }}）</div>
+            <div class="meta">支付：{{ payLabel(r.payStatus) }} | 状态：{{ regLabel(r.registrationStatus) }}</div>
+            <div v-if="r.remark" class="meta">备注：{{ r.remark }}</div>
+
+            <div class="actions">
+              <el-button v-if="r.payStatus === 0" size="small" type="primary" @click="doPay(r)">支付</el-button>
+              <el-button v-if="r.registrationStatus === 0" size="small" @click="doCancel(r)">取消</el-button>
+            </div>
           </div>
-          <div class="meta">科室：{{ deptNameMap.get(r.deptId) || r.deptId }}</div>
-          <div class="meta">日期：{{ r.scheduleDate }}（{{ r.timeSlot }}）</div>
-          <div class="meta">支付：{{ payLabel(r.payStatus) }} | 状态：{{ regLabel(r.registrationStatus) }}</div>
-          <div v-if="r.remark" class="meta">备注：{{ r.remark }}</div>
 
-          <div class="actions">
-            <el-button v-if="r.payStatus === 0" size="small" type="primary" @click="doPay(r)">支付</el-button>
-            <el-button v-if="r.registrationStatus === 0" size="small" @click="doCancel(r)">取消</el-button>
+          <div v-if="total > size" style="display: flex; justify-content: center; margin-top: 12px">
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :page-size="size"
+              :total="total"
+              :current-page="page.value + 1"
+              @current-change="onPageChange"
+            />
           </div>
-        </div>
-
-        <div style="display: flex; justify-content: center; margin-top: 12px" v-if="total > size">
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :page-size="size"
-            :total="total"
-            :current-page="page.value + 1"
-            @current-change="onPageChange"
-          />
-        </div>
-      </template>
-    </el-skeleton>
-  </el-card>
+        </template>
+      </el-skeleton>
+    </section>
+  </div>
 </template>
-
-<style scoped>
-.reg-card {
-  padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  background: #fff;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
-}
-
-.title {
-  font-weight: 700;
-}
-
-.fee {
-  font-weight: 600;
-  color: #409eff;
-}
-
-.meta {
-  font-size: 12px;
-  color: #606266;
-  line-height: 18px;
-}
-
-.actions {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-}
-</style>

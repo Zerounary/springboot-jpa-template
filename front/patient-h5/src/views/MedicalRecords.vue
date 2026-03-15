@@ -70,55 +70,70 @@ onMounted(async () => {
 </script>
 
 <template>
-  <el-card shadow="never">
-    <div style="font-weight: 600; margin-bottom: 8px">病例查询</div>
+  <div class="page-stack">
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">病例查询</div>
+          <div class="section-subtitle">按诊断、主诉和状态快速筛选个人病历</div>
+        </div>
+        <div class="mobile-accent">共 {{ total }} 条</div>
+      </div>
 
-    <el-form label-position="top" @submit.prevent>
-      <el-form-item label="关键词（诊断/主诉）">
-        <el-input v-model="query.keyword" placeholder="例如：高血压" clearable />
-      </el-form-item>
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="关键词（诊断/主诉）">
+          <el-input v-model="query.keyword" placeholder="例如：高血压" clearable />
+        </el-form-item>
 
-      <el-form-item label="状态">
-        <el-select v-model="query.recordStatus" placeholder="全部" clearable style="width: 100%">
-          <el-option label="草稿" :value="0" />
-          <el-option label="已完成" :value="1" />
-        </el-select>
-      </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.recordStatus" placeholder="全部" clearable style="width: 100%">
+            <el-option label="草稿" :value="0" />
+            <el-option label="已完成" :value="1" />
+          </el-select>
+        </el-form-item>
 
-      <el-form-item>
-        <el-button type="primary" style="width: 100%" :loading="loading" @click="onSearch">查询</el-button>
-      </el-form-item>
-    </el-form>
+        <el-form-item>
+          <el-button type="primary" style="width: 100%" :loading="loading" @click="onSearch">查询病历</el-button>
+        </el-form-item>
+      </el-form>
+    </section>
 
-    <el-divider content-position="left">结果 {{ total }}</el-divider>
+    <section class="panel-card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">病历列表</div>
+          <div class="section-subtitle">点击卡片可查看完整病历详情</div>
+        </div>
+      </div>
 
-    <el-skeleton :loading="loading" animated>
-      <template #default>
-        <div v-if="list.length === 0" style="color: #909399">暂无数据</div>
+      <el-skeleton :loading="loading" animated>
+        <template #default>
+          <div v-if="list.length === 0" class="empty-text">暂无病历数据</div>
 
-        <div v-for="r in list" :key="r.recordId" class="rec-card" @click="openDetail(r)">
-          <div class="row">
-            <div class="title">{{ r.diagnosis || '（未填写诊断）' }}</div>
-            <div class="status">{{ statusLabel(r.recordStatus) }}</div>
+          <div v-for="r in list" :key="r.recordId" class="rec-card" @click="openDetail(r)">
+            <div class="list-head">
+              <div class="title">{{ r.diagnosis || '（未填写诊断）' }}</div>
+              <div class="status">{{ statusLabel(r.recordStatus) }}</div>
+            </div>
+            <div class="meta">就诊时间：{{ formatDateTime(r.visitDate) }}</div>
+            <div class="meta">医生：{{ r.doctorRealName }}</div>
+            <div class="meta" v-if="r.chiefComplaint">主诉：{{ r.chiefComplaint }}</div>
           </div>
-          <div class="meta">就诊时间：{{ formatDateTime(r.visitDate) }}</div>
-          <div class="meta">医生：{{ r.doctorRealName }}</div>
-          <div class="meta" v-if="r.chiefComplaint">主诉：{{ r.chiefComplaint }}</div>
-        </div>
 
-        <div style="display: flex; justify-content: center; margin-top: 12px" v-if="total > size">
-          <el-pagination
-            background
-            layout="prev, pager, next"
-            :page-size="size"
-            :total="total"
-            :current-page="page.value + 1"
-            @current-change="onPageChange"
-          />
-        </div>
-      </template>
-    </el-skeleton>
-  </el-card>
+          <div v-if="total > size" style="display: flex; justify-content: center; margin-top: 12px">
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :page-size="size"
+              :total="total"
+              :current-page="page.value + 1"
+              @current-change="onPageChange"
+            />
+          </div>
+        </template>
+      </el-skeleton>
+    </section>
+  </div>
 
   <el-dialog v-model="dialogVisible" title="病历详情" width="92%">
     <div v-if="detail">
@@ -136,36 +151,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.rec-card {
-  padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  background: #fff;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
-}
-
-.title {
-  font-weight: 700;
-}
-
-.status {
-  font-size: 12px;
-  color: #409eff;
-}
-
-.meta {
-  font-size: 12px;
-  color: #606266;
-  line-height: 18px;
-}
-
 .d-row {
   display: flex;
   gap: 12px;

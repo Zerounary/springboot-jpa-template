@@ -6,6 +6,15 @@ import { useAuthStore } from '../stores/auth'
 const route = useRoute()
 const auth = useAuthStore()
 
+const tabs = [
+  { path: '/home', label: '首页', icon: '首' },
+  { path: '/doctors', label: '医生', icon: '医' },
+  { path: '/registrations', label: '挂号', icon: '挂' },
+  { path: '/medical-records', label: '病历', icon: '历' },
+  { path: '/health', label: '健康', icon: '健' },
+  { path: '/me', label: '我的', icon: '我' },
+]
+
 const title = computed(() => {
   const map = {
     '/home': '健康首页',
@@ -17,63 +26,45 @@ const title = computed(() => {
   }
   return map[route.path] || '患者端'
 })
+
+const subtitle = computed(() => {
+  const map = {
+    '/home': '查看健康概览与常用入口',
+    '/doctors': '按科室与擅长快速找医生',
+    '/registrations': '在线预约并查看挂号记录',
+    '/medical-records': '随时查阅个人病历',
+    '/health': '记录健康数据与趋势变化',
+    '/me': '查看个人信息与账号状态',
+  }
+  return map[route.path] || '移动患者服务'
+})
 </script>
 
 <template>
-  <div class="page">
-    <div class="topbar">
-      <div class="topbar-title">{{ title }}</div>
-      <div class="topbar-user">{{ auth.me?.realName || auth.me?.username }}</div>
+  <div class="mobile-shell">
+    <div class="mobile-topbar">
+      <div>
+        <div class="mobile-topbar__title">{{ title }}</div>
+        <div class="mobile-topbar__subtitle">{{ subtitle }}</div>
+      </div>
+      <div class="mobile-topbar__user">{{ auth.me?.realName || auth.me?.username || '患者' }}</div>
     </div>
 
-    <div class="content">
+    <div class="mobile-content">
       <router-view />
     </div>
 
-    <el-menu class="bottombar" mode="horizontal" router :default-active="route.path">
-      <el-menu-item index="/home">首页</el-menu-item>
-      <el-menu-item index="/doctors">医生</el-menu-item>
-      <el-menu-item index="/registrations">挂号</el-menu-item>
-      <el-menu-item index="/medical-records">病例</el-menu-item>
-      <el-menu-item index="/health">健康</el-menu-item>
-      <el-menu-item index="/me">我的</el-menu-item>
-    </el-menu>
+    <nav class="mobile-tabbar">
+      <router-link
+        v-for="tab in tabs"
+        :key="tab.path"
+        :to="tab.path"
+        class="mobile-tabbar__item"
+        :class="{ 'is-active': route.path === tab.path }"
+      >
+        <span class="mobile-tabbar__icon">{{ tab.icon }}</span>
+        <span>{{ tab.label }}</span>
+      </router-link>
+    </nav>
   </div>
 </template>
-
-<style scoped>
-.page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f5f7fa;
-}
-
-.topbar {
-  height: 48px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #ffffff;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.topbar-title {
-  font-weight: 600;
-}
-
-.topbar-user {
-  font-size: 12px;
-  color: #606266;
-}
-
-.content {
-  flex: 1;
-  padding: 12px;
-}
-
-.bottombar {
-  border-top: 1px solid #e4e7ed;
-}
-</style>

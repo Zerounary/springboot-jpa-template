@@ -1,9 +1,31 @@
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 const http = axios.create({
   baseURL: '',
   timeout: 15000,
 })
+
+function showError(message) {
+  if (message) {
+    ElMessage.error(message)
+  }
+}
+
+function handleUnauthorized(message) {
+  localStorage.removeItem('token')
+  localStorage.removeItem('me')
+  if (window.location.pathname !== '/login') {
+    if (message) {
+      showError(message)
+    }
+    window.location.href = '/login'
+    return
+  }
+  if (message) {
+    showError(message)
+  }
+}
 
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
@@ -21,20 +43,29 @@ http.interceptors.response.use(
       if (body.code === 0) {
         return body.data
       }
+      const message = body.message || '请求失败'
       if (body.code === 401) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('me')
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
-        }
+        handleUnauthorized(message)
+      } else {
+        showError(message)
       }
-      const err = new Error(body.message || '请求失败')
+      const err = new Error(message)
       err.code = body.code
       throw err
     }
     return body
   },
   (error) => {
+    const status = error?.response?.status
+    const body = error?.response?.data
+    const message = body?.message || body?.msg || error?.message || (status ? `请求失败(${status})` : '网络异常，请稍后重试')
+
+    if (status === 401) {
+      handleUnauthorized(message)
+      throw error
+    }
+
+    showError(message)
     throw error
   },
 )

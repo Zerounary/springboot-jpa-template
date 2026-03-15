@@ -296,3 +296,37 @@ CREATE TABLE IF NOT EXISTS sys_operation_log (
   PRIMARY KEY (log_id),
   KEY idx_oplog_user_id (user_id)
 );
+
+INSERT INTO sys_role (role_name, role_code, description)
+SELECT '系统管理员', 'ADMIN', '初始化管理员角色'
+WHERE NOT EXISTS (
+  SELECT 1 FROM sys_role WHERE role_code = 'ADMIN'
+);
+
+INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
+SELECT 'admin', '$2a$12$oGAygCf6f5qUOfhItnFdVOoEY4S4t9B3e6DbapEtGF7Noy2cHBGbe', '管理员', 'admin@example.com', '系统管理员', 1, 1, 0, NOW(), NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM users WHERE username = 'admin'
+);
+
+UPDATE users
+SET password_hash = '$2a$12$oGAygCf6f5qUOfhItnFdVOoEY4S4t9B3e6DbapEtGF7Noy2cHBGbe',
+    nickname = '管理员',
+    email = 'admin@example.com',
+    real_name = '系统管理员',
+    role_type = 1,
+    status = 1,
+    is_deleted = 0,
+    updated_at = NOW()
+WHERE username = 'admin';
+
+INSERT INTO sys_user_role (user_id, role_id)
+SELECT u.id, r.role_id
+FROM users u
+JOIN sys_role r ON r.role_code = 'ADMIN'
+WHERE u.username = 'admin'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM sys_user_role sur
+    WHERE sur.user_id = u.id AND sur.role_id = r.role_id
+  );

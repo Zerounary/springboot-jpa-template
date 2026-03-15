@@ -50,6 +50,10 @@ public class AuthService {
         u.setUsername(req.getUsername());
         u.setPassword(req.getPassword());
         u.setNickname(req.getNickname());
+        u.setRealName(req.getRealName());
+        u.setPhone(req.getPhone());
+        u.setRoleType(3);
+        u.setStatus(1);
         return u;
     }
 }

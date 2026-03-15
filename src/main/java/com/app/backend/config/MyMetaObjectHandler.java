@@ -14,10 +14,14 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         LocalDateTime now = LocalDateTime.now();
         strictInsertFill(metaObject, "createdAt", LocalDateTime.class, now);
         strictInsertFill(metaObject, "updatedAt", LocalDateTime.class, now);
+        strictInsertFill(metaObject, "createTime", LocalDateTime.class, now);
+        strictInsertFill(metaObject, "updateTime", LocalDateTime.class, now);
     }
 
     @Override
     public void updateFill(MetaObject metaObject) {
-        strictUpdateFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        strictUpdateFill(metaObject, "updatedAt", LocalDateTime.class, now);
+        strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, now);
     }
 }

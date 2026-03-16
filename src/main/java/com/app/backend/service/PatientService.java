@@ -9,6 +9,8 @@ import com.app.backend.repository.PatientRepository;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,6 +100,13 @@ public class PatientService {
             throw new BizException(404, "患者不存在");
         }
         return p;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> listAllIds() {
+        QueryWrapper<Patient> qw = new QueryWrapper<>();
+        qw.select("id");
+        return patientRepository.selectList(qw).stream().map(Patient::getId).collect(Collectors.toList());
     }
 
     public PatientDto toDto(Patient p) {

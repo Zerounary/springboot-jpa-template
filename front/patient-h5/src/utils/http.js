@@ -42,6 +42,19 @@ http.interceptors.response.use(
         window.location.href = '/login'
       }
     }
+    
+    // 处理服务器返回的错误响应
+    if (error.response?.data) {
+      const errorData = error.response.data
+      if (errorData && typeof errorData === 'object' && 'message' in errorData) {
+        // 创建一个新的错误对象，包含服务器返回的message
+        const err = new Error(errorData.message || '请求失败')
+        err.code = errorData.code
+        err.response = error.response
+        throw err
+      }
+    }
+    
     throw error
   },
 )

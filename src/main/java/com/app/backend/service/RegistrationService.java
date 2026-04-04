@@ -57,9 +57,6 @@ public class RegistrationService {
         if (operator.getRoleType() == null) {
             throw new BizException(403, "无权限");
         }
-        if (operator.getRoleType() == 2) {
-            throw new BizException(403, "医生不可创建挂号");
-        }
 
         Long patientId;
         if (operator.getRoleType() == 1) {

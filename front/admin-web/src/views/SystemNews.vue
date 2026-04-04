@@ -316,8 +316,8 @@ onMounted(async () => {
           :page-size="size"
           :page-sizes="[10, 20, 50]"
           :current-page="page + 1"
-          @update:current-page="(p) => { page.value = p - 1; fetchPage() }"
-          @update:page-size="(s) => { size.value = s; page.value = 0; fetchPage() }"
+          @update:current-page="(p) => { page = p - 1; fetchPage() }"
+          @update:page-size="(s) => { size = s; page = 0; fetchPage() }"
         />
       </div>
     </el-card>

@@ -304,13 +304,13 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'admin', '$2a$12$oGAygCf6f5qUOfhItnFdVOoEY4S4t9B3e6DbapEtGF7Noy2cHBGbe', '管理员', 'admin@example.com', '系统管理员', 1, 1, 0, NOW(), NOW()
+SELECT 'admin', 'admin123', '管理员', 'admin@example.com', '系统管理员', 1, 1, 0, NOW(), NOW()
 WHERE NOT EXISTS (
   SELECT 1 FROM users WHERE username = 'admin'
 );
 
 UPDATE users
-SET password_hash = '$2a$12$oGAygCf6f5qUOfhItnFdVOoEY4S4t9B3e6DbapEtGF7Noy2cHBGbe',
+SET password_hash = 'admin123',
     nickname = '管理员',
     email = 'admin@example.com',
     real_name = '系统管理员',

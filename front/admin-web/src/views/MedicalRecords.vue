@@ -3,6 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '../utils/http'
 import { useAuthStore } from '../stores/auth'
+import DepartmentSelect from '../components/DepartmentSelect.vue'
+import DoctorSelect from '../components/DoctorSelect.vue'
+import PatientSelect from '../components/PatientSelect.vue'
 
 const auth = useAuthStore()
 const isAdmin = computed(() => auth.roleType === 1)
@@ -182,29 +185,27 @@ onMounted(async () => {
             <el-option :value="1" label="已完成" />
           </el-select>
 
-          <el-select v-model="filters.deptId" placeholder="科室" clearable style="width: 200px" @change="() => { loadDoctorOptions(); resetAndSearch() }">
-            <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
-          </el-select>
+          <DepartmentSelect 
+            v-model="filters.deptId" 
+            placeholder="科室"
+            style="width: 200px"
+            @change="resetAndSearch"
+          />
 
-          <el-select
+          <DoctorSelect
             v-if="isAdmin"
             v-model="filters.doctorId"
             placeholder="医生"
-            clearable
-            filterable
             style="width: 180px"
             @change="resetAndSearch"
-          >
-            <el-option v-for="d in doctorOptions" :key="d.value" :value="d.value" :label="d.label" />
-          </el-select>
+          />
 
-          <el-input
+          <PatientSelect
             v-if="isAdmin"
             v-model="filters.patientId"
-            placeholder="患者ID"
-            clearable
+            placeholder="患者"
             style="width: 140px"
-            @keyup.enter="resetAndSearch"
+            @change="resetAndSearch"
           />
 
           <el-input

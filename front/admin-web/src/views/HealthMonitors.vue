@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '../utils/http'
 import { useAuthStore } from '../stores/auth'
+import PatientSelect from '../components/PatientSelect.vue'
 
 const auth = useAuthStore()
 const isAdmin = computed(() => auth.roleType === 1)
@@ -163,7 +164,12 @@ onMounted(async () => {
     <el-card class="admin-table-card">
       <div class="admin-toolbar">
         <div class="admin-toolbar__group">
-          <el-input-number v-model="filters.patientId" :min="1" placeholder="患者ID" style="width: 140px" @change="resetAndSearch" />
+          <PatientSelect 
+            v-model="filters.patientId" 
+            placeholder="患者"
+            style="width: 140px"
+            @change="resetAndSearch"
+          />
 
           <el-date-picker
             v-model="filters.dateFrom"

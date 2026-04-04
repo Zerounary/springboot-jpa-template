@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '../utils/http'
 import { useAuthStore } from '../stores/auth'
+import PatientSelect from '../components/PatientSelect.vue'
 
 const auth = useAuthStore()
 
@@ -244,11 +245,16 @@ onMounted(async () => {
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增患者' : '编辑患者'" width="760px">
     <el-form ref="editFormRef" :model="editForm" label-width="110px" :disabled="editLoading">
       <el-form-item
-        label="用户ID"
+        label="用户"
         prop="userId"
-        :rules="editMode === 'create' ? [{ required: true, message: '请输入用户ID（需为患者角色）', trigger: 'change' }] : []"
+        :rules="editMode === 'create' ? [{ required: true, message: '请选择用户（需为患者角色）', trigger: 'change' }] : []"
       >
-        <el-input-number v-model="editForm.userId" :min="1" :disabled="editMode !== 'create'" style="width: 220px" />
+        <PatientSelect 
+          v-model="editForm.userId" 
+          :disabled="editMode !== 'create'"
+          style="width: 260px"
+          placeholder="请搜索并选择患者用户"
+        />
       </el-form-item>
 
       <el-form-item label="生日" prop="birthDate">

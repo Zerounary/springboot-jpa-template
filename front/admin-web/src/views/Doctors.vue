@@ -3,6 +3,8 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '../utils/http'
 import { useAuthStore } from '../stores/auth'
+import DoctorSelect from '../components/DoctorSelect.vue'
+import DepartmentSelect from '../components/DepartmentSelect.vue'
 
 const auth = useAuthStore()
 
@@ -245,17 +247,24 @@ onMounted(async () => {
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增医生' : '编辑医生'" width="760px">
     <el-form ref="editFormRef" :model="editForm" label-width="100px" :disabled="editLoading">
       <el-form-item
-        label="用户ID"
+        label="用户"
         prop="userId"
-        :rules="editMode === 'create' ? [{ required: true, message: '请输入用户ID（需为医生角色）', trigger: 'change' }] : []"
+        :rules="editMode === 'create' ? [{ required: true, message: '请选择用户（需为医生角色）', trigger: 'change' }] : []"
       >
-        <el-input-number v-model="editForm.userId" :min="1" :disabled="editMode !== 'create'" style="width: 220px" />
+        <DoctorSelect 
+          v-model="editForm.userId" 
+          :disabled="editMode !== 'create'"
+          style="width: 260px"
+          placeholder="请搜索并选择医生用户"
+        />
       </el-form-item>
 
       <el-form-item label="科室" prop="deptId" :rules="[{ required: true, message: '请选择科室', trigger: 'change' }]">
-        <el-select v-model="editForm.deptId" style="width: 260px">
-          <el-option v-for="d in deptOptions" :key="d.value" :value="d.value" :label="d.label" />
-        </el-select>
+        <DepartmentSelect 
+          v-model="editForm.deptId" 
+          style="width: 260px"
+          placeholder="请搜索并选择科室"
+        />
       </el-form-item>
 
       <el-form-item label="职称" prop="jobTitle" :rules="[{ required: true, message: '请输入职称', trigger: 'blur' }]">

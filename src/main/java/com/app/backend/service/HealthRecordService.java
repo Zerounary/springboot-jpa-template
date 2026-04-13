@@ -9,11 +9,15 @@ import com.app.backend.repository.HealthRecordRepository;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class HealthRecordService {
+
+    private static final DateTimeFormatter QUERY_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final HealthRecordRepository healthRecordRepository;
     private final PatientService patientService;
@@ -79,7 +83,7 @@ public class HealthRecordService {
     }
 
     @Transactional(readOnly = true)
-    public IPage<HealthRecordDto> page(int page, int size, Long patientId, String keyword) {
+    public IPage<HealthRecordDto> page(int page, int size, Long patientId, String keyword, String startTime, String endTime) {
         Page<HealthRecord> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
         QueryWrapper<HealthRecord> qw = new QueryWrapper<>();
         if (patientId != null) {
@@ -87,6 +91,12 @@ public class HealthRecordService {
         }
         if (keyword != null) {
             qw.and(w -> w.like("comorbidity", keyword));
+        }
+        if (startTime != null && !startTime.trim().isEmpty()) {
+            qw.ge("created_at", LocalDateTime.parse(startTime, QUERY_TIME_FORMATTER));
+        }
+        if (endTime != null && !endTime.trim().isEmpty()) {
+            qw.le("created_at", LocalDateTime.parse(endTime, QUERY_TIME_FORMATTER));
         }
         qw.orderByDesc("id");
         IPage<HealthRecord> result = healthRecordRepository.selectPage(p, qw);

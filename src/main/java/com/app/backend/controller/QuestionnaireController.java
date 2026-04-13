@@ -61,9 +61,11 @@ public class QuestionnaireController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
             HttpServletRequest request
     ) {
         accessService.requireDoctorOrAdmin(request);
-        return ApiResponse.ok(questionnaireService.page(page, size, patientId));
+        return ApiResponse.ok(questionnaireService.page(page, size, patientId, startTime, endTime));
     }
 }

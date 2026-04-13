@@ -62,9 +62,11 @@ public class HealthRecordController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Long patientId,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
             HttpServletRequest request
     ) {
         accessService.requireDoctorOrAdmin(request);
-        return ApiResponse.ok(healthRecordService.page(page, size, patientId, keyword));
+        return ApiResponse.ok(healthRecordService.page(page, size, patientId, keyword, startTime, endTime));
     }
 }

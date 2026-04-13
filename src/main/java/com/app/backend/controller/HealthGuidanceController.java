@@ -68,20 +68,24 @@ public class HealthGuidanceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
             HttpServletRequest request
     ) {
         accessService.requireDoctorOrAdmin(request);
-        return ApiResponse.ok(healthGuidanceService.page(page, size, patientId));
+        return ApiResponse.ok(healthGuidanceService.page(page, size, patientId, startTime, endTime));
     }
 
     @GetMapping("/mine")
     public ApiResponse<IPage<HealthGuidanceDto>> mine(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
             HttpServletRequest request
     ) {
         accessService.requirePatient(request);
         Long patientId = patientService.getByAccountId(accessService.currentUserId(request)).getId();
-        return ApiResponse.ok(healthGuidanceService.pageByPatientId(page, size, patientId));
+        return ApiResponse.ok(healthGuidanceService.pageByPatientId(page, size, patientId, startTime, endTime));
     }
 }

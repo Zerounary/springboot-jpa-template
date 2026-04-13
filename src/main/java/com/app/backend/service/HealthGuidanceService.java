@@ -9,11 +9,15 @@ import com.app.backend.repository.HealthGuidanceRepository;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class HealthGuidanceService {
+
+    private static final DateTimeFormatter QUERY_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final HealthGuidanceRepository healthGuidanceRepository;
     private final PatientService patientService;
@@ -78,19 +82,25 @@ public class HealthGuidanceService {
     }
 
     @Transactional(readOnly = true)
-    public IPage<HealthGuidanceDto> page(int page, int size, Long patientId) {
+    public IPage<HealthGuidanceDto> page(int page, int size, Long patientId, String startTime, String endTime) {
         Page<HealthGuidance> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
         QueryWrapper<HealthGuidance> qw = new QueryWrapper<>();
         if (patientId != null) {
             qw.eq("patient_id", patientId);
+        }
+        if (startTime != null && !startTime.trim().isEmpty()) {
+            qw.ge("created_at", LocalDateTime.parse(startTime, QUERY_TIME_FORMATTER));
+        }
+        if (endTime != null && !endTime.trim().isEmpty()) {
+            qw.le("created_at", LocalDateTime.parse(endTime, QUERY_TIME_FORMATTER));
         }
         qw.orderByDesc("id");
         return healthGuidanceRepository.selectPage(p, qw).convert(this::toDto);
     }
 
     @Transactional(readOnly = true)
-    public IPage<HealthGuidanceDto> pageByPatientId(int page, int size, Long patientId) {
-        return page(page, size, patientId);
+    public IPage<HealthGuidanceDto> pageByPatientId(int page, int size, Long patientId, String startTime, String endTime) {
+        return page(page, size, patientId, startTime, endTime);
     }
 
     @Transactional(readOnly = true)

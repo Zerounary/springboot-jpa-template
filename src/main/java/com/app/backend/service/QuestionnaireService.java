@@ -9,11 +9,15 @@ import com.app.backend.repository.QuestionnaireRepository;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class QuestionnaireService {
+
+    private static final DateTimeFormatter QUERY_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final QuestionnaireRepository questionnaireRepository;
     private final PatientService patientService;
@@ -77,11 +81,17 @@ public class QuestionnaireService {
     }
 
     @Transactional(readOnly = true)
-    public IPage<QuestionnaireDto> page(int page, int size, Long patientId) {
+    public IPage<QuestionnaireDto> page(int page, int size, Long patientId, String startTime, String endTime) {
         Page<Questionnaire> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
         QueryWrapper<Questionnaire> qw = new QueryWrapper<>();
         if (patientId != null) {
             qw.eq("patient_id", patientId);
+        }
+        if (startTime != null && !startTime.trim().isEmpty()) {
+            qw.ge("questionnaire_time", LocalDateTime.parse(startTime, QUERY_TIME_FORMATTER));
+        }
+        if (endTime != null && !endTime.trim().isEmpty()) {
+            qw.le("questionnaire_time", LocalDateTime.parse(endTime, QUERY_TIME_FORMATTER));
         }
         qw.orderByDesc("questionnaire_time").orderByDesc("id");
         IPage<Questionnaire> result = questionnaireRepository.selectPage(p, qw);

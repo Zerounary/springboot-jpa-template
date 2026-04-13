@@ -9,11 +9,15 @@ import com.app.backend.repository.PhysicalExamRepository;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PhysicalExamService {
+
+    private static final DateTimeFormatter QUERY_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     private final PhysicalExamRepository physicalExamRepository;
     private final PatientService patientService;
@@ -81,11 +85,17 @@ public class PhysicalExamService {
     }
 
     @Transactional(readOnly = true)
-    public IPage<PhysicalExamDto> page(int page, int size, Long patientId) {
+    public IPage<PhysicalExamDto> page(int page, int size, Long patientId, String startTime, String endTime) {
         Page<PhysicalExam> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
         QueryWrapper<PhysicalExam> qw = new QueryWrapper<>();
         if (patientId != null) {
             qw.eq("patient_id", patientId);
+        }
+        if (startTime != null && !startTime.trim().isEmpty()) {
+            qw.ge("exam_time", LocalDateTime.parse(startTime, QUERY_TIME_FORMATTER));
+        }
+        if (endTime != null && !endTime.trim().isEmpty()) {
+            qw.le("exam_time", LocalDateTime.parse(endTime, QUERY_TIME_FORMATTER));
         }
         qw.orderByDesc("exam_time").orderByDesc("id");
         IPage<PhysicalExam> result = physicalExamRepository.selectPage(p, qw);
@@ -93,8 +103,8 @@ public class PhysicalExamService {
     }
 
     @Transactional(readOnly = true)
-    public IPage<PhysicalExamDto> pageByPatientId(int page, int size, Long patientId) {
-        return page(page, size, patientId);
+    public IPage<PhysicalExamDto> pageByPatientId(int page, int size, Long patientId, String startTime, String endTime) {
+        return page(page, size, patientId, startTime, endTime);
     }
 
     @Transactional(readOnly = true)

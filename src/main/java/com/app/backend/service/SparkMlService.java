@@ -3,6 +3,7 @@ package com.app.backend.service;
 import com.app.backend.common.BizException;
 import com.app.backend.dto.SparkTrainRequest;
 import com.app.backend.dto.SparkTrainResultDto;
+import org.apache.spark.ml.linalg.Vector;
 import org.apache.spark.ml.Pipeline;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.PipelineStage;
@@ -130,6 +131,90 @@ public class SparkMlService {
             result.setAuc(auc);
             result.setAccuracy(accuracy);
             return result;
+        } finally {
+            spark.stop();
+        }
+    }
+
+    public double predictProbabilityByPatientId(Long patientId) {
+        if (patientId == null) {
+            throw new BizException(400, "patientId不能为空");
+        }
+
+        SparkSession spark = SparkSession.builder()
+                .appName("HypertensionPredict")
+                .master("local[*]")
+                .config("spark.ui.enabled", "false")
+                .config("spark.sql.shuffle.partitions", "4")
+                .getOrCreate();
+
+        try {
+            Dataset<Row> raw = spark.read()
+                    .format("jdbc")
+                    .option("url", jdbcUrl)
+                    .option("dbtable", "hypertension_fusion")
+                    .option("user", jdbcUsername)
+                    .option("password", jdbcPassword)
+                    .option("driver", jdbcDriver)
+                    .load();
+
+            Dataset<Row> df = raw
+                    .select(
+                            col("patient_id").cast("long").alias("patient_id"),
+                            col("age").cast("double").alias("age"),
+                            col("gender").cast("double").alias("gender"),
+                            col("systolic_bp").cast("double").alias("systolic_bp"),
+                            col("diastolic_bp").cast("double").alias("diastolic_bp"),
+                            col("bmi").cast("double").alias("bmi"),
+                            col("cholesterol").cast("double").alias("cholesterol"),
+                            col("family_hypertension").cast("double").alias("family_hypertension"),
+                            col("smoking").cast("double").alias("smoking"),
+                            col("diet_preference").cast("double").alias("diet_preference"),
+                            col("hypertension_label").cast("double").alias("label")
+                    )
+                    .na().drop();
+
+            long total = df.count();
+            if (total < 5) {
+                throw new BizException(400, "融合表训练数据过少，至少需要5条");
+            }
+
+            Dataset<Row> patientDf = df.filter(col("patient_id").equalTo(patientId)).limit(1);
+            if (patientDf.count() <= 0) {
+                throw new BizException(400, "缺少融合数据，请先同步融合数据后再预测");
+            }
+
+            VectorAssembler assembler = new VectorAssembler()
+                    .setInputCols(new String[]{
+                            "age",
+                            "gender",
+                            "systolic_bp",
+                            "diastolic_bp",
+                            "bmi",
+                            "cholesterol",
+                            "family_hypertension",
+                            "smoking",
+                            "diet_preference"
+                    })
+                    .setOutputCol("features");
+
+            LogisticRegression lr = new LogisticRegression()
+                    .setLabelCol("label")
+                    .setFeaturesCol("features")
+                    .setMaxIter(100);
+
+            Pipeline pipeline = new Pipeline().setStages(new PipelineStage[]{assembler, lr});
+            PipelineModel model = pipeline.fit(df);
+
+            Row r = model.transform(patientDf).select(col("probability")).first();
+            if (r == null) {
+                throw new BizException(500, "Spark预测失败");
+            }
+            Vector prob = r.getAs(0);
+            if (prob == null || prob.size() < 2) {
+                throw new BizException(500, "Spark预测概率无效");
+            }
+            return prob.apply(1);
         } finally {
             spark.stop();
         }

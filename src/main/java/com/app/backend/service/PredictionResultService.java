@@ -30,19 +30,25 @@ public class PredictionResultService {
     private final PhysicalExamService physicalExamService;
     private final HealthRecordRepository healthRecordRepository;
     private final QuestionnaireRepository questionnaireRepository;
+    private final HypertensionFusionService hypertensionFusionService;
+    private final SparkMlService sparkMlService;
 
     public PredictionResultService(
             PredictionResultRepository predictionResultRepository,
             PatientService patientService,
             PhysicalExamService physicalExamService,
             HealthRecordRepository healthRecordRepository,
-            QuestionnaireRepository questionnaireRepository
+            QuestionnaireRepository questionnaireRepository,
+            HypertensionFusionService hypertensionFusionService,
+            SparkMlService sparkMlService
     ) {
         this.predictionResultRepository = predictionResultRepository;
         this.patientService = patientService;
         this.physicalExamService = physicalExamService;
         this.healthRecordRepository = healthRecordRepository;
         this.questionnaireRepository = questionnaireRepository;
+        this.hypertensionFusionService = hypertensionFusionService;
+        this.sparkMlService = sparkMlService;
     }
 
     @Transactional
@@ -126,6 +132,14 @@ public class PredictionResultService {
             throw new BizException(400, "缺少体检数据，无法生成预测结果");
         }
 
+        hypertensionFusionService.syncOne(patientId, null);
+
+        double p1 = sparkMlService.predictProbabilityByPatientId(patientId);
+        BigDecimal probability = BigDecimal.valueOf(Math.min(0.99999d, Math.max(0.00001d, p1)))
+                .setScale(5, RoundingMode.HALF_UP);
+        int label = probability.compareTo(new BigDecimal("0.50000")) >= 0 ? 1 : 0;
+        int warningStatus = probability.compareTo(new BigDecimal("0.70000")) >= 0 ? 2 : (label == 1 ? 1 : 0);
+
         QueryWrapper<HealthRecord> healthRecordQuery = new QueryWrapper<>();
         healthRecordQuery.eq("patient_id", patientId).last("LIMIT 1");
         HealthRecord healthRecord = healthRecordRepository.selectOne(healthRecordQuery);
@@ -181,17 +195,13 @@ public class PredictionResultService {
             riskFactors.add("压力水平较高");
         }
 
-        BigDecimal probability = BigDecimal.valueOf(Math.min(0.95d, Math.max(0.05d, score / 10.0d)))
-                .setScale(5, RoundingMode.HALF_UP);
-        int label = probability.compareTo(new BigDecimal("0.50000")) >= 0 ? 1 : 0;
-        int warningStatus = probability.compareTo(new BigDecimal("0.70000")) >= 0 ? 2 : (label == 1 ? 1 : 0);
-
         PredictionResult result = new PredictionResult();
         result.setPatientId(patientId);
         result.setPredictionTime(LocalDateTime.now());
         result.setPredictionProb(probability);
         result.setPredictionLabel(label);
-        result.setCoreRiskFactors(riskFactors.isEmpty() ? "未识别明显高风险因素" : String.join("，", riskFactors));
+        String core = riskFactors.isEmpty() ? "未识别明显高风险因素" : String.join("，", riskFactors);
+        result.setCoreRiskFactors("SparkML预测；" + core);
         result.setWarningStatus(warningStatus);
         predictionResultRepository.insert(result);
         return toDto(result);

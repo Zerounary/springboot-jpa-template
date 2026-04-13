@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { type Dayjs } from 'dayjs'
 import { mlModelListApi, type MlModelDto } from '../api/mlModels'
-import { predictionResultDetailApi } from '../api/predictionResults'
+import { predictionResultDetailApi, predictionResultPageApi, type PredictionResultDto } from '../api/predictionResults'
 import { useAuthStore } from '../stores/auth'
 import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
 import { userDetailApi } from '../api/users'
@@ -33,6 +33,8 @@ const patientSearching = ref(false)
 const doctorLabelMap = ref<Record<number, string>>({})
 const modelLabelMap = ref<Record<number, string>>({})
 const predictionModelLabelMap = ref<Record<number, string>>({})
+const predictionLabelMap = ref<Record<number, string>>({})
+const predictionOptions = ref<PredictionResultDto[]>([])
 
 const loading = ref(false)
 const rows = ref<HealthGuidanceDto[]>([])
@@ -70,6 +72,12 @@ function patientLabel(p: PatientDto) {
 
 function modelLabel(m: MlModelDto) {
   return `${m.modelName} / ${m.versionTag} / ${m.algorithm}`
+}
+
+function predictionLabel(item: PredictionResultDto) {
+  const time = item.predictionTime || ''
+  const model = item.modelId ? (modelLabelMap.value[item.modelId] || `#${item.modelId}`) : '-'
+  return `#${item.id} / ${time} / ${model}`
 }
 
 async function loadModels() {
@@ -122,6 +130,21 @@ async function ensurePatientLabels(ids: number[]) {
 }
 
 async function ensureDoctorLabels(ids: number[]) {
+  if (auth.user?.id) {
+    doctorLabelMap.value = {
+      ...doctorLabelMap.value,
+      [auth.user.id]: auth.user.nickname || auth.user.username,
+    }
+  }
+
+  if (!canManage.value || !auth.user) {
+    return
+  }
+
+  if (auth.user.role !== 'ADMIN') {
+    return
+  }
+
   const missing = Array.from(new Set(ids)).filter((id) => id && !doctorLabelMap.value[id])
   if (!missing.length) {
     return
@@ -146,12 +169,36 @@ async function ensurePredictionModelLabels(ids: number[]) {
   }
   const details = await Promise.all(missing.map((id) => predictionResultDetailApi(id).catch(() => null)))
   const map = { ...predictionModelLabelMap.value }
+  const predictionMap = { ...predictionLabelMap.value }
   for (const item of details) {
     if (item && item.id) {
       map[item.id] = item.modelId ? (modelLabelMap.value[item.modelId] || `#${item.modelId}`) : '-'
+      predictionMap[item.id] = predictionLabel(item)
     }
   }
   predictionModelLabelMap.value = map
+  predictionLabelMap.value = predictionMap
+}
+
+async function loadPredictionOptions(patientId: number | null) {
+  if (!patientId) {
+    predictionOptions.value = []
+    return
+  }
+  const data = await predictionResultPageApi({
+    page: 0,
+    size: 50,
+    patientId,
+  })
+  predictionOptions.value = data.records
+  if (data.records.length) {
+    await ensurePredictionModelLabels(data.records.map((item) => item.id))
+    const map = { ...predictionLabelMap.value }
+    for (const item of data.records) {
+      map[item.id] = predictionLabel(item)
+    }
+    predictionLabelMap.value = map
+  }
 }
 
 function showTotal(t: number) {
@@ -190,6 +237,7 @@ function openCreate() {
   }
   editingId.value = null
   resetForm()
+  predictionOptions.value = []
   modalOpen.value = true
 }
 
@@ -205,6 +253,7 @@ function openCreatePrefilled() {
   if (patientId) {
     form.patientId = patientId
     query.patientId = patientId
+    loadPredictionOptions(patientId)
   }
   if (predictionResultId) {
     form.predictionResultId = predictionResultId
@@ -221,6 +270,7 @@ function openEdit(r: HealthGuidanceDto) {
   form.guidanceTitle = r.guidanceTitle
   form.guidanceContent = r.guidanceContent
   form.guidanceLevel = r.guidanceLevel
+  loadPredictionOptions(r.patientId)
   modalOpen.value = true
 }
 
@@ -270,6 +320,18 @@ function modelRender({ record }: { record: HealthGuidanceDto }) {
     return '-'
   }
   return predictionModelLabelMap.value[record.predictionResultId] || `#${record.predictionResultId}`
+}
+
+function predictionRender({ record }: { record: HealthGuidanceDto }) {
+  if (!record.predictionResultId) {
+    return '-'
+  }
+  return predictionLabelMap.value[record.predictionResultId] || `#${record.predictionResultId}`
+}
+
+function onFormPatientChange(value: number | null) {
+  form.predictionResultId = null
+  loadPredictionOptions(value)
 }
 
 function guidanceLevelText(v: number) {
@@ -426,7 +488,7 @@ onMounted(() => {
       <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
       <a-table-column v-if="!isPatient" title="患者" :customRender="patientRender" width="200" />
       <a-table-column v-if="!isPatient" title="医生" :customRender="doctorRender" width="160" />
-      <a-table-column title="预测结果ID" data-index="predictionResultId" width="120" />
+      <a-table-column title="关联预测" :customRender="predictionRender" width="260" />
       <a-table-column title="模型" :customRender="modelRender" width="240" />
       <a-table-column title="标题" data-index="guidanceTitle" width="220" />
       <a-table-column title="等级" :customRender="guidanceLevelRender" width="100" />
@@ -451,7 +513,7 @@ onMounted(() => {
             {{ isPatient ? '' : (patientLabelMap[detail.patientId] || detail.patientId) }}
           </a-descriptions-item>
           <a-descriptions-item label="医生">{{ doctorLabelMap[detail.doctorUserId] || `#${detail.doctorUserId}` }}</a-descriptions-item>
-          <a-descriptions-item label="预测结果ID">{{ detail.predictionResultId ?? '' }}</a-descriptions-item>
+          <a-descriptions-item label="关联预测">{{ detail.predictionResultId ? (predictionLabelMap[detail.predictionResultId] || `#${detail.predictionResultId}`) : '-' }}</a-descriptions-item>
           <a-descriptions-item label="模型">{{ detail.predictionResultId ? (predictionModelLabelMap[detail.predictionResultId] || `#${detail.predictionResultId}`) : '-' }}</a-descriptions-item>
           <a-descriptions-item label="标题" :span="2">{{ detail.guidanceTitle }}</a-descriptions-item>
           <a-descriptions-item label="等级">{{ guidanceLevelText(detail.guidanceLevel) }}</a-descriptions-item>
@@ -477,6 +539,7 @@ onMounted(() => {
             :filter-option="false"
             :not-found-content="patientSearching ? '搜索中...' : '无数据'"
             placeholder="搜索患者（userId/phone）"
+            @change="onFormPatientChange"
             @search="searchPatients"
           >
             <a-select-option v-for="p in patientOptions" :key="p.id" :value="p.id">
@@ -484,8 +547,18 @@ onMounted(() => {
             </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="预测结果ID">
-          <a-input-number v-model:value="form.predictionResultId" :min="1" style="width: 100%" />
+        <a-form-item label="关联预测结果">
+          <a-select
+            v-model:value="form.predictionResultId"
+            allow-clear
+            show-search
+            option-filter-prop="label"
+            placeholder="选择关联预测结果"
+          >
+            <a-select-option v-for="item in predictionOptions" :key="item.id" :value="item.id" :label="predictionLabelMap[item.id] || predictionLabel(item)">
+              {{ predictionLabelMap[item.id] || predictionLabel(item) }}
+            </a-select-option>
+          </a-select>
         </a-form-item>
         <a-form-item label="指导标题" required>
           <a-input v-model:value="form.guidanceTitle" />

@@ -102,5 +102,12 @@ router.beforeEach(async (to) => {
     }
   }
 
+  if (auth.user?.role === 'DOCTOR') {
+    const blockedRoutes = new Set(['organizations', 'fusion', 'spark'])
+    if (typeof to.name === 'string' && blockedRoutes.has(to.name)) {
+      return { name: 'home' }
+    }
+  }
+
   return true
 })

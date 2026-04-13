@@ -4,8 +4,11 @@ import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { type Dayjs } from 'dayjs'
+import { mlModelListApi, type MlModelDto } from '../api/mlModels'
+import { predictionResultDetailApi } from '../api/predictionResults'
 import { useAuthStore } from '../stores/auth'
 import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
+import { userDetailApi } from '../api/users'
 import {
   healthGuidanceCreateApi,
   healthGuidanceDetailApi,
@@ -27,6 +30,9 @@ const canManage = computed(() => auth.user?.role === 'DOCTOR' || auth.user?.role
 const patientOptions = ref<PatientDto[]>([])
 const patientLabelMap = ref<Record<number, string>>({})
 const patientSearching = ref(false)
+const doctorLabelMap = ref<Record<number, string>>({})
+const modelLabelMap = ref<Record<number, string>>({})
+const predictionModelLabelMap = ref<Record<number, string>>({})
 
 const loading = ref(false)
 const rows = ref<HealthGuidanceDto[]>([])
@@ -60,6 +66,23 @@ const detail = ref<HealthGuidanceDto | null>(null)
 function patientLabel(p: PatientDto) {
   const phone = p.phone ? ` / ${p.phone}` : ''
   return `${p.userId}${phone}`
+}
+
+function modelLabel(m: MlModelDto) {
+  return `${m.modelName} / ${m.versionTag} / ${m.algorithm}`
+}
+
+async function loadModels() {
+  try {
+    const models = await mlModelListApi({ activeOnly: false })
+    const map: Record<number, string> = {}
+    for (const m of models) {
+      map[m.id] = modelLabel(m)
+    }
+    modelLabelMap.value = map
+  } catch {
+    modelLabelMap.value = { ...modelLabelMap.value }
+  }
 }
 
 async function searchPatients(keyword: string) {
@@ -96,6 +119,39 @@ async function ensurePatientLabels(ids: number[]) {
     }
   }
   patientLabelMap.value = map
+}
+
+async function ensureDoctorLabels(ids: number[]) {
+  const missing = Array.from(new Set(ids)).filter((id) => id && !doctorLabelMap.value[id])
+  if (!missing.length) {
+    return
+  }
+  const details = await Promise.all(missing.map((id) => userDetailApi(id).catch(() => null)))
+  const map = { ...doctorLabelMap.value }
+  for (const u of details) {
+    if (u) {
+      map[u.id] = u.nickname || u.username
+    }
+  }
+  doctorLabelMap.value = map
+}
+
+async function ensurePredictionModelLabels(ids: number[]) {
+  const missing = Array.from(new Set(ids)).filter((id) => id && !predictionModelLabelMap.value[id])
+  if (!missing.length) {
+    return
+  }
+  if (!Object.keys(modelLabelMap.value).length) {
+    await loadModels()
+  }
+  const details = await Promise.all(missing.map((id) => predictionResultDetailApi(id).catch(() => null)))
+  const map = { ...predictionModelLabelMap.value }
+  for (const item of details) {
+    if (item && item.id) {
+      map[item.id] = item.modelId ? (modelLabelMap.value[item.modelId] || `#${item.modelId}`) : '-'
+    }
+  }
+  predictionModelLabelMap.value = map
 }
 
 function showTotal(t: number) {
@@ -190,9 +246,9 @@ async function load() {
     rows.value = data.records
     total.value = data.total
 
-    if (!isPatient.value) {
-      await ensurePatientLabels(data.records.map((r) => r.patientId))
-    }
+    await ensurePatientLabels(data.records.map((r) => r.patientId))
+    await ensureDoctorLabels(data.records.map((r) => r.doctorUserId))
+    await ensurePredictionModelLabels(data.records.map((r) => r.predictionResultId || 0))
   } finally {
     loading.value = false
   }
@@ -203,6 +259,17 @@ function patientRender({ record }: { record: HealthGuidanceDto }) {
     return ''
   }
   return patientLabelMap.value[record.patientId] || String(record.patientId)
+}
+
+function doctorRender({ record }: { record: HealthGuidanceDto }) {
+  return doctorLabelMap.value[record.doctorUserId] || `#${record.doctorUserId}`
+}
+
+function modelRender({ record }: { record: HealthGuidanceDto }) {
+  if (!record.predictionResultId) {
+    return '-'
+  }
+  return predictionModelLabelMap.value[record.predictionResultId] || `#${record.predictionResultId}`
 }
 
 function guidanceLevelText(v: number) {
@@ -294,6 +361,7 @@ function confirmDelete(r: HealthGuidanceDto) {
 }
 
 onMounted(load)
+onMounted(loadModels)
 
 onMounted(() => {
   if (!canManage.value) {
@@ -357,8 +425,9 @@ onMounted(() => {
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
       <a-table-column v-if="!isPatient" title="患者" :customRender="patientRender" width="200" />
-      <a-table-column v-if="!isPatient" title="医生账号ID" data-index="doctorUserId" width="120" />
+      <a-table-column v-if="!isPatient" title="医生" :customRender="doctorRender" width="160" />
       <a-table-column title="预测结果ID" data-index="predictionResultId" width="120" />
+      <a-table-column title="模型" :customRender="modelRender" width="240" />
       <a-table-column title="标题" data-index="guidanceTitle" width="220" />
       <a-table-column title="等级" :customRender="guidanceLevelRender" width="100" />
       <a-table-column title="内容" :customRender="contentRender" />
@@ -381,8 +450,9 @@ onMounted(() => {
           <a-descriptions-item label="患者">
             {{ isPatient ? '' : (patientLabelMap[detail.patientId] || detail.patientId) }}
           </a-descriptions-item>
-          <a-descriptions-item label="医生账号ID">{{ detail.doctorUserId }}</a-descriptions-item>
+          <a-descriptions-item label="医生">{{ doctorLabelMap[detail.doctorUserId] || `#${detail.doctorUserId}` }}</a-descriptions-item>
           <a-descriptions-item label="预测结果ID">{{ detail.predictionResultId ?? '' }}</a-descriptions-item>
+          <a-descriptions-item label="模型">{{ detail.predictionResultId ? (predictionModelLabelMap[detail.predictionResultId] || `#${detail.predictionResultId}`) : '-' }}</a-descriptions-item>
           <a-descriptions-item label="标题" :span="2">{{ detail.guidanceTitle }}</a-descriptions-item>
           <a-descriptions-item label="等级">{{ guidanceLevelText(detail.guidanceLevel) }}</a-descriptions-item>
           <a-descriptions-item label="创建时间">{{ detail.createdAt || '' }}</a-descriptions-item>

@@ -33,6 +33,7 @@ const patientOptions = ref<PatientDto[]>([])
 const patientLabelMap = ref<Record<number, string>>({})
 const patientSearching = ref(false)
 const modelOptions = ref<MlModelDto[]>([])
+const modelLabelMap = ref<Record<number, string>>({})
 
 const query = reactive({
   patientId: null as number | null,
@@ -64,11 +65,20 @@ function patientLabel(p: PatientDto) {
   return `${p.userId}${phone}`
 }
 
+function modelLabel(m: MlModelDto) {
+  return `${m.modelName} / ${m.versionTag} / ${m.algorithm}`
+}
+
 async function loadModels() {
   if (isPatient.value) {
     return
   }
   modelOptions.value = await mlModelListApi({ activeOnly: false })
+  const map: Record<number, string> = {}
+  for (const m of modelOptions.value) {
+    map[m.id] = modelLabel(m)
+  }
+  modelLabelMap.value = map
 }
 
 async function searchPatients(keyword: string) {
@@ -209,6 +219,13 @@ function patientRender({ record }: { record: PredictionResultDto }) {
     return ''
   }
   return patientLabelMap.value[record.patientId] || String(record.patientId)
+}
+
+function modelRender({ record }: { record: PredictionResultDto }) {
+  if (!record.modelId) {
+    return '-'
+  }
+  return modelLabelMap.value[record.modelId] || `#${record.modelId}`
 }
 
 function labelText(v: number) {
@@ -367,7 +384,7 @@ onMounted(loadModels)
       <a-form-item label="模型">
         <a-select v-model:value="query.modelId" allow-clear style="width: 260px" placeholder="选择模型版本（默认最新激活）">
           <a-select-option v-for="m in modelOptions" :key="m.id" :value="m.id">
-            {{ m.modelName }} / {{ m.versionTag }} / {{ m.algorithm }}
+            {{ modelLabel(m) }}
           </a-select-option>
         </a-select>
       </a-form-item>
@@ -404,7 +421,7 @@ onMounted(loadModels)
     >
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
-      <a-table-column v-if="!isPatient" title="modelId" data-index="modelId" width="100" />
+      <a-table-column v-if="!isPatient" title="模型" :customRender="modelRender" width="240" />
       <a-table-column v-if="!isPatient" title="患者" :customRender="patientRender" width="200" />
       <a-table-column title="预测时间" data-index="predictionTime" width="180" />
       <a-table-column title="概率" :customRender="probRender" width="100" />
@@ -428,7 +445,7 @@ onMounted(loadModels)
         <a-descriptions v-if="detail" bordered :column="2">
           <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
           <a-descriptions-item label="patientId">{{ detail.patientId }}</a-descriptions-item>
-          <a-descriptions-item label="modelId">{{ detail.modelId || '-' }}</a-descriptions-item>
+          <a-descriptions-item label="模型">{{ detail.modelId ? (modelLabelMap[detail.modelId] || `#${detail.modelId}`) : '-' }}</a-descriptions-item>
           <a-descriptions-item label="预测时间">{{ detail.predictionTime }}</a-descriptions-item>
           <a-descriptions-item label="概率">{{ detail.predictionProb }}</a-descriptions-item>
           <a-descriptions-item label="标签">{{ labelText(detail.predictionLabel) }}</a-descriptions-item>

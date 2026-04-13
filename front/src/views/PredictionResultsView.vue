@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useAuthStore } from '../stores/auth'
@@ -16,12 +17,14 @@ import {
 } from '../api/predictionResults'
 
 const auth = useAuthStore()
+const router = useRouter()
 const loading = ref(false)
 const rows = ref<PredictionResultDto[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
 const isPatient = computed(() => auth.user?.role === 'PATIENT')
+const canManage = computed(() => auth.user?.role === 'DOCTOR' || auth.user?.role === 'ADMIN')
 
 const query = reactive({
   patientId: null as number | null,
@@ -131,6 +134,11 @@ function labelText(v: number) {
   return v === 1 ? '高风险' : '低风险'
 }
 
+function truncateText(s: string, max = 36) {
+  if (!s) return ''
+  return s.length > max ? `${s.slice(0, max)}...` : s
+}
+
 function warningText(v: number) {
   if (v === 1) return '已预警'
   if (v === 2) return '已干预'
@@ -143,6 +151,10 @@ function labelRender({ record }: { record: PredictionResultDto }) {
 
 function warningRender({ record }: { record: PredictionResultDto }) {
   return warningText(record.warningStatus)
+}
+
+function coreRiskRender({ record }: { record: PredictionResultDto }) {
+  return truncateText(record.coreRiskFactors, 60)
 }
 
 function probRender({ record }: { record: PredictionResultDto }) {
@@ -222,6 +234,20 @@ function confirmDelete(r: PredictionResultDto) {
   })
 }
 
+function toGuidanceCreate(r: PredictionResultDto) {
+  if (!canManage.value) {
+    return
+  }
+  router.push({
+    name: 'health-guidances',
+    query: {
+      create: '1',
+      patientId: String(r.patientId),
+      predictionResultId: String(r.id),
+    },
+  })
+}
+
 onMounted(load)
 </script>
 
@@ -262,15 +288,16 @@ onMounted(load)
       :scroll="{ x: 1100 }"
     >
       <a-table-column title="ID" data-index="id" width="80" />
-      <a-table-column title="patientId" data-index="patientId" width="100" />
+      <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
       <a-table-column title="预测时间" data-index="predictionTime" width="180" />
       <a-table-column title="概率" :customRender="probRender" width="100" />
       <a-table-column title="标签" :customRender="labelRender" width="100" />
       <a-table-column title="预警状态" :customRender="warningRender" width="120" />
-      <a-table-column title="核心风险因素" data-index="coreRiskFactors" />
+      <a-table-column title="核心风险因素" :customRender="coreRiskRender" />
       <a-table-column v-if="!isPatient" title="操作" width="180" fixed="right">
         <template #default="{ record }">
           <a-space>
+            <a-button v-if="canManage" type="link" @click="() => toGuidanceCreate(record)">写健康指导</a-button>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
             <a-button type="link" danger @click="() => confirmDelete(record)">删除</a-button>
           </a-space>

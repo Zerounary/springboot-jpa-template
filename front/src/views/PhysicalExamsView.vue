@@ -239,7 +239,7 @@ onMounted(load)
       @change="onTableChange"
     >
       <a-table-column title="ID" data-index="id" width="80" />
-      <a-table-column title="patientId" data-index="patientId" width="100" />
+      <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
       <a-table-column title="体检时间" :customRender="examTimeRender" width="180" />
       <a-table-column title="收缩压" data-index="systolicBp" width="90" />
       <a-table-column title="舒张压" data-index="diastolicBp" width="90" />

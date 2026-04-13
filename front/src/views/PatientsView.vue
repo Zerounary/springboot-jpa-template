@@ -22,6 +22,7 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
 const isPatient = computed(() => auth.user?.role === 'PATIENT')
+const myProfile = computed(() => (rows.value.length ? rows.value[0] : null))
 
 const query = reactive({
   keyword: '',
@@ -237,9 +238,21 @@ onMounted(load)
     <div v-else style="margin-bottom: 12px">
       <a-button type="primary" @click="openSelfEdit">编辑我的档案</a-button>
     </div>
+    <a-card v-if="isPatient" :loading="loading" style="margin-bottom: 12px" :bordered="false">
+      <a-descriptions v-if="myProfile" bordered :column="2" size="middle">
+        <a-descriptions-item label="性别">{{ myProfile.gender === 1 ? '男' : '女' }}</a-descriptions-item>
+        <a-descriptions-item label="年龄">{{ myProfile.age }}</a-descriptions-item>
+        <a-descriptions-item label="出生日期">{{ myProfile.birthDate }}</a-descriptions-item>
+        <a-descriptions-item label="手机号">{{ myProfile.phone }}</a-descriptions-item>
+        <a-descriptions-item label="医疗机构">{{ myProfile.medicalInstitution }}</a-descriptions-item>
+        <a-descriptions-item label="民族">{{ myProfile.nation || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="创建时间">{{ myProfile.createdAt || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="更新时间">{{ myProfile.updatedAt || '-' }}</a-descriptions-item>
+      </a-descriptions>
+      <a-empty v-else description="暂无档案信息" />
+    </a-card>
 
-    <a-table
-      row-key="id"
+    <a-table v-if="!isPatient" row-key="id"
       :loading="loading"
       :data-source="rows"
       :pagination="{

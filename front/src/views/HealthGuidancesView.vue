@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -14,7 +16,10 @@ import {
 } from '../api/healthGuidances'
 
 const auth = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const isPatient = computed(() => auth.user?.role === 'PATIENT')
+const canManage = computed(() => auth.user?.role === 'DOCTOR' || auth.user?.role === 'ADMIN')
 
 const loading = ref(false)
 const rows = ref<HealthGuidanceDto[]>([])
@@ -78,6 +83,27 @@ function openCreate() {
   modalOpen.value = true
 }
 
+function openCreatePrefilled() {
+  if (!canManage.value) {
+    return
+  }
+  const patientId = typeof route.query.patientId === 'string' ? Number(route.query.patientId) : null
+  const predictionResultId = typeof route.query.predictionResultId === 'string' ? Number(route.query.predictionResultId) : null
+
+  editingId.value = null
+  resetForm()
+  if (patientId) {
+    form.patientId = patientId
+    query.patientId = patientId
+  }
+  if (predictionResultId) {
+    form.predictionResultId = predictionResultId
+  }
+  modalOpen.value = true
+
+  router.replace({ name: 'health-guidances' })
+}
+
 function openEdit(r: HealthGuidanceDto) {
   editingId.value = r.id
   form.patientId = r.patientId
@@ -116,6 +142,15 @@ function guidanceLevelText(v: number) {
 
 function guidanceLevelRender({ record }: { record: HealthGuidanceDto }) {
   return guidanceLevelText(record.guidanceLevel)
+}
+
+function truncateText(s: string, max = 40) {
+  if (!s) return ''
+  return s.length > max ? `${s.slice(0, max)}...` : s
+}
+
+function contentRender({ record }: { record: HealthGuidanceDto }) {
+  return truncateText(record.guidanceContent, 80)
 }
 
 async function submit() {
@@ -177,6 +212,15 @@ function confirmDelete(r: HealthGuidanceDto) {
 }
 
 onMounted(load)
+
+onMounted(() => {
+  if (!canManage.value) {
+    return
+  }
+  if (route.query.create === '1') {
+    openCreatePrefilled()
+  }
+})
 </script>
 
 <template>
@@ -213,12 +257,12 @@ onMounted(load)
       :scroll="{ x: 1000 }"
     >
       <a-table-column title="ID" data-index="id" width="80" />
-      <a-table-column title="patientId" data-index="patientId" width="100" />
-      <a-table-column title="医生账号ID" data-index="doctorUserId" width="120" />
+      <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
+      <a-table-column v-if="!isPatient" title="医生账号ID" data-index="doctorUserId" width="120" />
       <a-table-column title="预测结果ID" data-index="predictionResultId" width="120" />
       <a-table-column title="标题" data-index="guidanceTitle" width="220" />
       <a-table-column title="等级" :customRender="guidanceLevelRender" width="100" />
-      <a-table-column title="内容" data-index="guidanceContent" />
+      <a-table-column title="内容" :customRender="contentRender" />
       <a-table-column title="创建时间" data-index="createdAt" width="180" />
       <a-table-column v-if="!isPatient" title="操作" width="180" fixed="right">
         <template #default="{ record }">

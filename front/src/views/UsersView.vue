@@ -1,21 +1,27 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
+import { useAuthStore } from '../stores/auth'
 import {
   userCreateApi,
   userDeleteApi,
+  userMeApi,
   userPageApi,
+  userUpdateMeApi,
   userUpdateApi,
   type UserCreateRequest,
   type UserDto,
   type UserUpdateRequest,
 } from '../api/users'
+import type { UserRole } from '../api/auth'
 
+const auth = useAuthStore()
 const loading = ref(false)
 const rows = ref<UserDto[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+const isAdmin = computed(() => auth.user?.role === 'ADMIN')
 
 const query = reactive({
   keyword: '',
@@ -28,11 +34,15 @@ const editingId = ref<number | null>(null)
 const form = reactive({
   username: '',
   password: '',
+  role: 'PATIENT' as UserRole,
   nickname: '',
   email: '',
 })
 
-const modalTitle = computed(() => (editingId.value ? '编辑用户' : '新增用户'))
+const modalTitle = computed(() => {
+  if (!isAdmin.value) return '编辑个人资料'
+  return editingId.value ? '编辑用户' : '新增用户'
+})
 
 function showTotal(t: number) {
   return `共 ${t} 条`
@@ -58,11 +68,15 @@ function onReset() {
 function resetForm() {
   form.username = ''
   form.password = ''
+  form.role = 'PATIENT'
   form.nickname = ''
   form.email = ''
 }
 
 function openCreate() {
+  if (!isAdmin.value) {
+    return
+  }
   editingId.value = null
   resetForm()
   modalOpen.value = true
@@ -72,28 +86,44 @@ function openEdit(r: UserDto) {
   editingId.value = r.id
   form.username = r.username
   form.password = ''
+  form.role = r.role
   form.nickname = r.nickname || ''
   form.email = r.email || ''
   modalOpen.value = true
 }
 
+function openProfileEdit() {
+  if (!auth.user) {
+    return
+  }
+  openEdit(auth.user)
+}
+
 async function load() {
   loading.value = true
   try {
-    const data = await userPageApi({
-      page: page.value - 1,
-      size: pageSize.value,
-      keyword: query.keyword || null,
-    })
-    rows.value = data.records
-    total.value = data.total
+    if (isAdmin.value) {
+      const data = await userPageApi({
+        page: page.value - 1,
+        size: pageSize.value,
+        keyword: query.keyword || null,
+      })
+      rows.value = data.records
+      total.value = data.total
+    } else {
+      const me = await userMeApi()
+      auth.user = me
+      rows.value = [me]
+      total.value = 1
+      page.value = 1
+    }
   } finally {
     loading.value = false
   }
 }
 
 async function submit() {
-  if (!editingId.value) {
+  if (!editingId.value && isAdmin.value) {
     if (!form.username) {
       message.warning('请输入用户名')
       return
@@ -111,10 +141,11 @@ async function submit() {
 
   modalLoading.value = true
   try {
-    if (!editingId.value) {
+    if (!editingId.value && isAdmin.value) {
       const req: UserCreateRequest = {
         username: form.username,
         password: form.password,
+        role: form.role,
         nickname: form.nickname || undefined,
         email: form.email || undefined,
       }
@@ -126,7 +157,12 @@ async function submit() {
         email: form.email || undefined,
         password: form.password || undefined,
       }
-      await userUpdateApi(editingId.value, req)
+      if (isAdmin.value) {
+        await userUpdateApi(editingId.value as number, req)
+      } else {
+        const me = await userUpdateMeApi(req)
+        auth.user = me
+      }
       message.success('更新成功')
     }
 
@@ -138,6 +174,9 @@ async function submit() {
 }
 
 function confirmDelete(r: UserDto) {
+  if (!isAdmin.value) {
+    return
+  }
   Modal.confirm({
     title: '确认删除',
     content: `确定删除用户 ${r.username}（ID=${r.id}）吗？`,
@@ -154,9 +193,9 @@ onMounted(load)
 
 <template>
   <a-card>
-    <template #title>用户管理</template>
+    <template #title>{{ isAdmin ? '用户管理' : '我的账户' }}</template>
 
-    <a-form layout="inline" style="margin-bottom: 12px" @submit.prevent>
+    <a-form v-if="isAdmin" layout="inline" style="margin-bottom: 12px" @submit.prevent>
       <a-form-item label="关键词">
         <a-input v-model:value="query.keyword" placeholder="username/nickname" style="width: 260px" />
       </a-form-item>
@@ -170,6 +209,10 @@ onMounted(load)
         <a-button type="primary" @click="openCreate">新增</a-button>
       </a-form-item>
     </a-form>
+
+    <div v-else style="margin-bottom: 12px">
+      <a-button type="primary" @click="openProfileEdit">编辑个人资料</a-button>
+    </div>
 
     <a-table
       row-key="id"
@@ -187,11 +230,12 @@ onMounted(load)
     >
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column title="用户名" data-index="username" width="160" />
+      <a-table-column title="角色" data-index="role" width="120" />
       <a-table-column title="昵称" data-index="nickname" width="160" />
       <a-table-column title="邮箱" data-index="email" />
       <a-table-column title="创建时间" data-index="createdAt" width="180" />
       <a-table-column title="更新时间" data-index="updatedAt" width="180" />
-      <a-table-column title="操作" width="180" fixed="right">
+      <a-table-column v-if="isAdmin" title="操作" width="180" fixed="right">
         <template #default="{ record }">
           <a-space>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
@@ -211,7 +255,15 @@ onMounted(load)
     >
       <a-form layout="vertical">
         <a-form-item label="用户名" required>
-          <a-input v-model:value="form.username" :disabled="!!editingId" autocomplete="username" />
+          <a-input v-model:value="form.username" :disabled="!!editingId || !isAdmin" autocomplete="username" />
+        </a-form-item>
+
+        <a-form-item v-if="isAdmin && !editingId" label="角色">
+          <a-select v-model:value="form.role">
+            <a-select-option value="PATIENT">患者</a-select-option>
+            <a-select-option value="DOCTOR">医生</a-select-option>
+            <a-select-option value="ADMIN">管理员</a-select-option>
+          </a-select>
         </a-form-item>
 
         <a-form-item :label="editingId ? '新密码（可选）' : '密码'" :required="!editingId">

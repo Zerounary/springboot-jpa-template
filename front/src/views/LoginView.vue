@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '../stores/auth'
-import { registerApi } from '../api/auth'
+import { registerApi, type UserRole } from '../api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -22,6 +22,7 @@ const registerForm = reactive({
   username: '',
   password: '',
   nickname: '',
+  role: 'PATIENT' as UserRole,
 })
 
 async function onSubmit() {
@@ -54,6 +55,7 @@ async function onRegister() {
       username: registerForm.username,
       password: registerForm.password,
       nickname: registerForm.nickname || undefined,
+      role: registerForm.role,
     })
     message.success('注册成功，请登录')
     form.username = registerForm.username
@@ -90,6 +92,12 @@ async function onRegister() {
         </a-form-item>
         <a-form-item label="昵称">
           <a-input v-model:value="registerForm.nickname" />
+        </a-form-item>
+        <a-form-item label="注册角色">
+          <a-select v-model:value="registerForm.role">
+            <a-select-option value="PATIENT">患者</a-select-option>
+            <a-select-option value="DOCTOR">医生</a-select-option>
+          </a-select>
         </a-form-item>
       </a-form>
     </a-modal>

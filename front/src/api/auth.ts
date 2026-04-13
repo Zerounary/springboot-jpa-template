@@ -1,6 +1,8 @@
 import { http, request } from './http'
 import type { ApiResponse } from './types'
 
+export type UserRole = 'PATIENT' | 'DOCTOR' | 'ADMIN'
+
 export type LoginRequest = {
   username: string
   password: string
@@ -10,11 +12,13 @@ export type RegisterRequest = {
   username: string
   password: string
   nickname?: string
+  role?: UserRole
 }
 
 export type UserDto = {
   id: number
   username: string
+  role: UserRole
   nickname?: string
   email?: string
   createdAt?: string

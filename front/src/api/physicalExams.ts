@@ -57,6 +57,17 @@ export function physicalExamPageApi(params: { page: number; size: number; patien
   )
 }
 
+export function physicalExamMineApi(params: { page: number; size: number }) {
+  return request<IPage<PhysicalExamDto>>(
+    http.get<ApiResponse<IPage<PhysicalExamDto>>>('/api/physical-exams/mine', {
+      params: {
+        page: params.page,
+        size: params.size,
+      },
+    }),
+  )
+}
+
 export function physicalExamDetailApi(id: number) {
   return request<PhysicalExamDto>(http.get<ApiResponse<PhysicalExamDto>>(`/api/physical-exams/${id}`))
 }

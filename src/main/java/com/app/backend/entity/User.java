@@ -19,6 +19,8 @@ public class User {
     @TableField("password_hash")
     private String passwordHash;
 
+    private String role;
+
     private String nickname;
 
     private String email;
@@ -51,6 +53,14 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getNickname() {

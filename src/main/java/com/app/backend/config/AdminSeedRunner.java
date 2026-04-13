@@ -1,5 +1,6 @@
 package com.app.backend.config;
 
+import com.app.backend.common.UserRole;
 import com.app.backend.entity.User;
 import com.app.backend.repository.UserRepository;
 import com.app.backend.service.PasswordService;
@@ -20,18 +21,29 @@ public class AdminSeedRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        User admin = userRepository.selectOne(new QueryWrapper<User>().eq("username", "admin").last("LIMIT 1"));
-        if (admin == null) {
-            admin = new User();
-            admin.setUsername("admin");
-            admin.setPasswordHash(passwordService.hash("admin123"));
-            admin.setNickname("管理员");
-            userRepository.insert(admin);
+        ensureUser("admin", "admin123", "管理员", UserRole.ADMIN);
+        ensureUser("doctor", "doctor123", "医生账号", UserRole.DOCTOR);
+        ensureUser("patient1001", "patient123", "患者1001", UserRole.PATIENT);
+    }
+
+    private void ensureUser(String username, String password, String nickname, UserRole role) {
+        User user = userRepository.selectOne(new QueryWrapper<User>().eq("username", username).last("LIMIT 1"));
+        if (user == null) {
+            user = new User();
+            user.setUsername(username);
+            user.setPasswordHash(passwordService.hash(password));
+            user.setRole(role.name());
+            user.setNickname(nickname);
+            userRepository.insert(user);
             return;
         }
-        if (admin.getPasswordHash() == null || "INIT".equals(admin.getPasswordHash())) {
-            admin.setPasswordHash(passwordService.hash("admin123"));
-            userRepository.updateById(admin);
+        user.setRole(role.name());
+        if (user.getNickname() == null) {
+            user.setNickname(nickname);
         }
+        if (user.getPasswordHash() == null || "INIT".equals(user.getPasswordHash())) {
+            user.setPasswordHash(passwordService.hash(password));
+        }
+        userRepository.updateById(user);
     }
 }

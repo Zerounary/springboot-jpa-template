@@ -2,9 +2,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
+import { useAuthStore } from '../stores/auth'
 import {
   predictionResultCreateApi,
   predictionResultDeleteApi,
+  predictionResultGenerateApi,
+  predictionResultMineApi,
   predictionResultPageApi,
   predictionResultUpdateApi,
   type PredictionResultCreateRequest,
@@ -12,11 +15,13 @@ import {
   type PredictionResultUpdateRequest,
 } from '../api/predictionResults'
 
+const auth = useAuthStore()
 const loading = ref(false)
 const rows = ref<PredictionResultDto[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+const isPatient = computed(() => auth.user?.role === 'PATIENT')
 
 const query = reactive({
   patientId: null as number | null,
@@ -68,9 +73,27 @@ function resetForm() {
 }
 
 function openCreate() {
+  if (isPatient.value) {
+    return
+  }
   editingId.value = null
   resetForm()
   modalOpen.value = true
+}
+
+async function generatePrediction() {
+  if (!query.patientId) {
+    message.warning('请先输入 patientId')
+    return
+  }
+  loading.value = true
+  try {
+    await predictionResultGenerateApi({ patientId: query.patientId })
+    message.success('预测生成成功')
+    await load()
+  } finally {
+    loading.value = false
+  }
 }
 
 function openEdit(r: PredictionResultDto) {
@@ -87,11 +110,16 @@ function openEdit(r: PredictionResultDto) {
 async function load() {
   loading.value = true
   try {
-    const data = await predictionResultPageApi({
-      page: page.value - 1,
-      size: pageSize.value,
-      patientId: query.patientId,
-    })
+    const data = isPatient.value
+      ? await predictionResultMineApi({
+          page: page.value - 1,
+          size: pageSize.value,
+        })
+      : await predictionResultPageApi({
+          page: page.value - 1,
+          size: pageSize.value,
+          patientId: query.patientId,
+        })
     rows.value = data.records
     total.value = data.total
   } finally {
@@ -180,6 +208,9 @@ async function submit() {
 }
 
 function confirmDelete(r: PredictionResultDto) {
+  if (isPatient.value) {
+    return
+  }
   Modal.confirm({
     title: '确认删除',
     content: `确定删除预测结果（ID=${r.id}）吗？`,
@@ -196,9 +227,9 @@ onMounted(load)
 
 <template>
   <a-card>
-    <template #title>预测结果</template>
+    <template #title>{{ isPatient ? '我的预测结果' : '预测结果' }}</template>
 
-    <a-form layout="inline" style="margin-bottom: 12px" @submit.prevent>
+    <a-form v-if="!isPatient" layout="inline" style="margin-bottom: 12px" @submit.prevent>
       <a-form-item label="patientId">
         <a-input-number v-model:value="query.patientId" :min="1" style="width: 180px" placeholder="按患者过滤" />
       </a-form-item>
@@ -207,6 +238,9 @@ onMounted(load)
       </a-form-item>
       <a-form-item>
         <a-button @click="onReset">重置</a-button>
+      </a-form-item>
+      <a-form-item>
+        <a-button @click="generatePrediction">生成预测</a-button>
       </a-form-item>
       <a-form-item>
         <a-button type="primary" @click="openCreate">新增</a-button>
@@ -234,7 +268,7 @@ onMounted(load)
       <a-table-column title="标签" :customRender="labelRender" width="100" />
       <a-table-column title="预警状态" :customRender="warningRender" width="120" />
       <a-table-column title="核心风险因素" data-index="coreRiskFactors" />
-      <a-table-column title="操作" width="180" fixed="right">
+      <a-table-column v-if="!isPatient" title="操作" width="180" fixed="right">
         <template #default="{ record }">
           <a-space>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
@@ -253,7 +287,7 @@ onMounted(load)
       width="820px"
     >
       <a-form layout="vertical">
-        <a-form-item v-if="!editingId" label="patientId" required>
+        <a-form-item v-if="!editingId && !isPatient" label="patientId" required>
           <a-input-number v-model:value="form.patientId" :min="1" style="width: 100%" />
         </a-form-item>
 

@@ -92,6 +92,18 @@ public class PhysicalExamService {
         return result.convert(this::toDto);
     }
 
+    @Transactional(readOnly = true)
+    public IPage<PhysicalExamDto> pageByPatientId(int page, int size, Long patientId) {
+        return page(page, size, patientId);
+    }
+
+    @Transactional(readOnly = true)
+    public PhysicalExam getLatestByPatientId(Long patientId) {
+        QueryWrapper<PhysicalExam> qw = new QueryWrapper<>();
+        qw.eq("patient_id", patientId).orderByDesc("exam_time").orderByDesc("id").last("LIMIT 1");
+        return physicalExamRepository.selectOne(qw);
+    }
+
     public PhysicalExamDto toDto(PhysicalExam e) {
         PhysicalExamDto dto = new PhysicalExamDto();
         dto.setId(e.getId());

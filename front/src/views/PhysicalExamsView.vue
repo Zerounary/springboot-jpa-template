@@ -2,9 +2,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
+import { useAuthStore } from '../stores/auth'
 import {
   physicalExamCreateApi,
   physicalExamDeleteApi,
+  physicalExamMineApi,
   physicalExamPageApi,
   physicalExamUpdateApi,
   type PhysicalExamCreateRequest,
@@ -12,11 +14,13 @@ import {
   type PhysicalExamUpdateRequest,
 } from '../api/physicalExams'
 
+const auth = useAuthStore()
 const loading = ref(false)
 const rows = ref<PhysicalExamDto[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+const isPatient = computed(() => auth.user?.role === 'PATIENT')
 
 const query = reactive({
   patientId: null as number | null,
@@ -78,6 +82,9 @@ function resetForm() {
 }
 
 function openCreate() {
+  if (isPatient.value) {
+    return
+  }
   editingId.value = null
   resetForm()
   modalOpen.value = true
@@ -102,11 +109,16 @@ function openEdit(r: PhysicalExamDto) {
 async function load() {
   loading.value = true
   try {
-    const data = await physicalExamPageApi({
-      page: page.value - 1,
-      size: pageSize.value,
-      patientId: query.patientId,
-    })
+    const data = isPatient.value
+      ? await physicalExamMineApi({
+          page: page.value - 1,
+          size: pageSize.value,
+        })
+      : await physicalExamPageApi({
+          page: page.value - 1,
+          size: pageSize.value,
+          patientId: query.patientId,
+        })
     rows.value = data.records
     total.value = data.total
   } finally {
@@ -177,6 +189,9 @@ async function submit() {
 }
 
 function confirmDelete(r: PhysicalExamDto) {
+  if (isPatient.value) {
+    return
+  }
   Modal.confirm({
     title: '确认删除',
     content: `确定删除体检记录（ID=${r.id}）吗？`,
@@ -193,9 +208,9 @@ onMounted(load)
 
 <template>
   <a-card>
-    <template #title>体检数据</template>
+    <template #title>{{ isPatient ? '我的体检' : '体检数据' }}</template>
 
-    <a-form layout="inline" style="margin-bottom: 12px" @submit.prevent>
+    <a-form v-if="!isPatient" layout="inline" style="margin-bottom: 12px" @submit.prevent>
       <a-form-item label="patientId">
         <a-input-number v-model:value="query.patientId" :min="1" style="width: 180px" placeholder="按患者过滤" />
       </a-form-item>
@@ -234,7 +249,7 @@ onMounted(load)
       <a-table-column title="身高" data-index="height" width="90" />
       <a-table-column title="体重" data-index="weight" width="90" />
       <a-table-column title="心率" data-index="heartRate" width="90" />
-      <a-table-column title="操作" width="180" fixed="right">
+      <a-table-column v-if="!isPatient" title="操作" width="180" fixed="right">
         <template #default="{ record }">
           <a-space>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
@@ -253,7 +268,7 @@ onMounted(load)
       width="780px"
     >
       <a-form layout="vertical">
-        <a-form-item v-if="!editingId" label="patientId" required>
+        <a-form-item v-if="!editingId && !isPatient" label="patientId" required>
           <a-input-number v-model:value="form.patientId" :min="1" style="width: 100%" />
         </a-form-item>
 

@@ -21,6 +21,9 @@ public class UserCreateRequest {
     @Size(max = 128)
     private String email;
 
+    @Size(max = 32)
+    private String role;
+
     public String getUsername() {
         return username;
     }
@@ -51,5 +54,13 @@ public class UserCreateRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

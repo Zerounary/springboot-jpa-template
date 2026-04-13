@@ -42,6 +42,19 @@ public class JwtService {
                 .sign(algorithm);
     }
 
+    public String createToken(Long userId, String username, String role) {
+        Instant now = Instant.now();
+        Instant exp = now.plusSeconds(expireSeconds);
+        return JWT.create()
+                .withIssuer(issuer)
+                .withIssuedAt(Date.from(now))
+                .withExpiresAt(Date.from(exp))
+                .withClaim("uid", userId)
+                .withClaim("un", username)
+                .withClaim("role", role)
+                .sign(algorithm);
+    }
+
     public DecodedJWT verify(String token) {
         try {
             return verifier.verify(token);

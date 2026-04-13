@@ -18,6 +18,9 @@ public class Patient {
     @TableField("user_id")
     private String userId;
 
+    @TableField("account_id")
+    private Long accountId;
+
     private Integer gender;
 
     private Integer age;
@@ -52,6 +55,14 @@ public class Patient {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public Long getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(Long accountId) {
+        this.accountId = accountId;
     }
 
     public Integer getGender() {

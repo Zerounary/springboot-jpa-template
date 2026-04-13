@@ -16,6 +16,9 @@ public class RegisterRequest {
     @Size(max = 64)
     private String nickname;
 
+    @Size(max = 32)
+    private String role;
+
     public String getUsername() {
         return username;
     }
@@ -38,5 +41,13 @@ public class RegisterRequest {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

@@ -32,6 +32,7 @@ public class PatientService {
         }
         Patient p = new Patient();
         p.setUserId(req.getUserId());
+        p.setAccountId(req.getAccountId());
         p.setGender(req.getGender());
         p.setAge(req.getAge());
         p.setBirthDate(req.getBirthDate());
@@ -103,6 +104,28 @@ public class PatientService {
     }
 
     @Transactional(readOnly = true)
+    public Patient getByAccountId(Long accountId) {
+        QueryWrapper<Patient> qw = new QueryWrapper<>();
+        qw.eq("account_id", accountId).last("LIMIT 1");
+        Patient p = patientRepository.selectOne(qw);
+        if (p == null) {
+            throw new BizException(404, "当前账号未绑定患者档案");
+        }
+        return p;
+    }
+
+    @Transactional(readOnly = true)
+    public PatientDto detailByAccountId(Long accountId) {
+        return toDto(getByAccountId(accountId));
+    }
+
+    @Transactional
+    public PatientDto updateByAccountId(Long accountId, PatientUpdateRequest req) {
+        Patient p = getByAccountId(accountId);
+        return update(p.getId(), req);
+    }
+
+    @Transactional(readOnly = true)
     public List<Long> listAllIds() {
         QueryWrapper<Patient> qw = new QueryWrapper<>();
         qw.select("id");
@@ -113,6 +136,7 @@ public class PatientService {
         PatientDto dto = new PatientDto();
         dto.setId(p.getId());
         dto.setUserId(p.getUserId());
+        dto.setAccountId(p.getAccountId());
         dto.setGender(p.getGender());
         dto.setAge(p.getAge());
         dto.setBirthDate(p.getBirthDate());

@@ -1,6 +1,7 @@
 package com.app.backend.service;
 
 import com.app.backend.common.BizException;
+import com.app.backend.common.UserRole;
 import com.app.backend.dto.LoginRequest;
 import com.app.backend.dto.RegisterRequest;
 import com.app.backend.dto.UserCreateRequest;
@@ -24,6 +25,10 @@ public class AuthService {
 
     @Transactional
     public UserDto register(RegisterRequest req) {
+        UserRole role = UserRole.from(req.getRole());
+        if (role.isAdmin()) {
+            throw new BizException(403, "不允许注册管理员账号");
+        }
         return userService.create(toUserCreateRequest(req));
     }
 
@@ -34,7 +39,7 @@ public class AuthService {
         if (!passwordService.matches(req.getPassword(), user.getPasswordHash())) {
             throw new BizException(400, "用户名或密码错误");
         }
-        return jwtService.createToken(user.getId(), user.getUsername());
+        return jwtService.createToken(user.getId(), user.getUsername(), user.getRole());
     }
 
     @Transactional(readOnly = true)
@@ -50,6 +55,7 @@ public class AuthService {
         u.setUsername(req.getUsername());
         u.setPassword(req.getPassword());
         u.setNickname(req.getNickname());
+        u.setRole(req.getRole());
         return u;
     }
 }

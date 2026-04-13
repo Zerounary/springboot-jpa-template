@@ -1,6 +1,7 @@
 package com.app.backend.config;
 
 import com.app.backend.common.BizException;
+import com.app.backend.common.UserRole;
 import com.app.backend.service.JwtService;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import javax.servlet.http.HttpServletRequest;
@@ -10,6 +11,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class AuthInterceptor implements HandlerInterceptor {
 
     public static final String REQ_ATTR_USER_ID = "AUTH_USER_ID";
+    public static final String REQ_ATTR_ROLE = "AUTH_ROLE";
 
     private final JwtService jwtService;
 
@@ -34,11 +36,13 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         DecodedJWT jwt = jwtService.verify(token);
         Long userId = jwt.getClaim("uid").asLong();
+        String role = jwt.getClaim("role").asString();
         if (userId == null) {
             throw new BizException(401, "未登录");
         }
 
         request.setAttribute(REQ_ATTR_USER_ID, userId);
+        request.setAttribute(REQ_ATTR_ROLE, UserRole.from(role));
         return true;
     }
 }

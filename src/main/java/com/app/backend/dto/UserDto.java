@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public class UserDto {
     private Long id;
     private String username;
+    private String role;
     private String nickname;
     private String email;
     private LocalDateTime createdAt;
@@ -24,6 +25,14 @@ public class UserDto {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getNickname() {

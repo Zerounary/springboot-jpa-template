@@ -1,9 +1,10 @@
 import { http, request } from './http'
-import type { IPage } from './types'
+import type { ApiResponse, IPage } from './types'
 
 export type PatientDto = {
   id: number
   userId: string
+  accountId?: number
   gender: number
   age: number
   birthDate: string
@@ -16,6 +17,7 @@ export type PatientDto = {
 
 export type PatientCreateRequest = {
   userId: string
+  accountId?: number
   gender: number
   age: number
   birthDate: string
@@ -49,8 +51,16 @@ export function patientDetailApi(id: number) {
   return request<PatientDto>(http.get(`/api/patients/${id}`))
 }
 
+export function patientMeApi() {
+  return request<PatientDto>(http.get<ApiResponse<PatientDto>>('/api/patients/me'))
+}
+
 export function patientCreateApi(req: PatientCreateRequest) {
   return request<PatientDto>(http.post('/api/patients', req))
+}
+
+export function patientUpdateMeApi(req: PatientUpdateRequest) {
+  return request<PatientDto>(http.put<ApiResponse<PatientDto>>('/api/patients/me', req))
 }
 
 export function patientUpdateApi(id: number, req: PatientUpdateRequest) {

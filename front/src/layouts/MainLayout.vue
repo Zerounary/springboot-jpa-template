@@ -7,6 +7,11 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
+const role = computed(() => auth.user?.role || 'PATIENT')
+const isAdmin = computed(() => role.value === 'ADMIN')
+const isDoctor = computed(() => role.value === 'DOCTOR')
+const isPatient = computed(() => role.value === 'PATIENT')
+
 const selectedKeys = computed(() => {
   const n = route.name
   return typeof n === 'string' ? [n] : []
@@ -30,14 +35,15 @@ function logout() {
       </div>
       <a-menu theme="dark" mode="inline" :selected-keys="selectedKeys" @click="onMenuClick">
         <a-menu-item key="home">概览</a-menu-item>
-        <a-menu-item key="patients">患者</a-menu-item>
-        <a-menu-item key="health-records">健康档案</a-menu-item>
-        <a-menu-item key="physical-exams">体检数据</a-menu-item>
-        <a-menu-item key="questionnaires">问卷数据</a-menu-item>
-        <a-menu-item key="fusion">融合数据</a-menu-item>
-        <a-menu-item key="prediction-results">预测结果</a-menu-item>
-        <a-menu-item key="spark">Spark</a-menu-item>
-        <a-menu-item key="users">用户</a-menu-item>
+        <a-menu-item key="patients">{{ isPatient ? '我的档案' : '患者' }}</a-menu-item>
+        <a-menu-item v-if="!isPatient" key="health-records">健康档案</a-menu-item>
+        <a-menu-item key="physical-exams">{{ isPatient ? '我的体检' : '体检数据' }}</a-menu-item>
+        <a-menu-item v-if="!isPatient" key="questionnaires">问卷数据</a-menu-item>
+        <a-menu-item v-if="!isPatient" key="fusion">融合数据</a-menu-item>
+        <a-menu-item key="prediction-results">{{ isPatient ? '我的预测' : '预测结果' }}</a-menu-item>
+        <a-menu-item key="health-guidances">{{ isPatient ? '我的健康指导' : '健康指导' }}</a-menu-item>
+        <a-menu-item v-if="!isPatient" key="spark">Spark</a-menu-item>
+        <a-menu-item key="users">{{ isAdmin ? '用户管理' : '我的账户' }}</a-menu-item>
       </a-menu>
     </a-layout-sider>
 
@@ -45,6 +51,9 @@ function logout() {
       <a-layout-header
         style="background: #fff; padding: 0 16px; display: flex; align-items: center; justify-content: flex-end; gap: 12px"
       >
+        <a-tag :color="isAdmin ? 'red' : isDoctor ? 'blue' : 'green'">
+          {{ role }}
+        </a-tag>
         <a-typography-text v-if="auth.user">{{ auth.user.nickname || auth.user.username }}</a-typography-text>
         <a-button type="link" @click="logout">退出登录</a-button>
       </a-layout-header>

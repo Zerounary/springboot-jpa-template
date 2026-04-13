@@ -1,9 +1,11 @@
 import { http, request } from './http'
 import type { ApiResponse, IPage } from './types'
+import type { UserRole } from './auth'
 
 export type UserDto = {
   id: number
   username: string
+  role: UserRole
   nickname?: string
   email?: string
   createdAt?: string
@@ -13,6 +15,7 @@ export type UserDto = {
 export type UserCreateRequest = {
   username: string
   password: string
+  role?: UserRole
   nickname?: string
   email?: string
 }
@@ -41,6 +44,14 @@ export function userDetailApi(id: number) {
 
 export function userCreateApi(req: UserCreateRequest) {
   return request<UserDto>(http.post<ApiResponse<UserDto>>('/api/users', req))
+}
+
+export function userMeApi() {
+  return request<UserDto>(http.get<ApiResponse<UserDto>>('/api/users/me'))
+}
+
+export function userUpdateMeApi(req: UserUpdateRequest) {
+  return request<UserDto>(http.put<ApiResponse<UserDto>>('/api/users/me', req))
 }
 
 export function userUpdateApi(id: number, req: UserUpdateRequest) {

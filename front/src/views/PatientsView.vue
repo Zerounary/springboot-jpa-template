@@ -2,21 +2,26 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
+import { useAuthStore } from '../stores/auth'
 import {
   patientCreateApi,
   patientDeleteApi,
+  patientMeApi,
   patientPageApi,
+  patientUpdateMeApi,
   patientUpdateApi,
   type PatientCreateRequest,
   type PatientDto,
   type PatientUpdateRequest,
 } from '../api/patients'
 
+const auth = useAuthStore()
 const loading = ref(false)
 const rows = ref<PatientDto[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+const isPatient = computed(() => auth.user?.role === 'PATIENT')
 
 const query = reactive({
   keyword: '',
@@ -28,6 +33,7 @@ const editingId = ref<number | null>(null)
 
 const form = reactive({
   userId: '',
+  accountId: null as number | null,
   gender: 1,
   age: 40,
   birthDate: null as Dayjs | null,
@@ -36,7 +42,10 @@ const form = reactive({
   nation: '',
 })
 
-const modalTitle = computed(() => (editingId.value ? '编辑患者' : '新增患者'))
+const modalTitle = computed(() => {
+  if (isPatient.value) return '编辑我的档案'
+  return editingId.value ? '编辑患者' : '新增患者'
+})
 
 function showTotal(t: number) {
   return `共 ${t} 条`
@@ -66,13 +75,20 @@ function onReset() {
 async function load() {
   loading.value = true
   try {
-    const data = await patientPageApi({
-      page: page.value - 1,
-      size: pageSize.value,
-      keyword: query.keyword || null,
-    })
-    rows.value = data.records
-    total.value = data.total
+    if (isPatient.value) {
+      const me = await patientMeApi()
+      rows.value = [me]
+      total.value = 1
+      page.value = 1
+    } else {
+      const data = await patientPageApi({
+        page: page.value - 1,
+        size: pageSize.value,
+        keyword: query.keyword || null,
+      })
+      rows.value = data.records
+      total.value = data.total
+    }
   } finally {
     loading.value = false
   }
@@ -80,6 +96,7 @@ async function load() {
 
 function resetForm() {
   form.userId = ''
+  form.accountId = null
   form.gender = 1
   form.age = 40
   form.birthDate = null
@@ -89,6 +106,9 @@ function resetForm() {
 }
 
 function openCreate() {
+  if (isPatient.value) {
+    return
+  }
   editingId.value = null
   resetForm()
   modalOpen.value = true
@@ -97,6 +117,7 @@ function openCreate() {
 function openEdit(r: PatientDto) {
   editingId.value = r.id
   form.userId = r.userId
+  form.accountId = r.accountId ?? null
   form.gender = r.gender
   form.age = r.age
   form.birthDate = r.birthDate ? dayjs(r.birthDate) : null
@@ -104,6 +125,12 @@ function openEdit(r: PatientDto) {
   form.medicalInstitution = r.medicalInstitution
   form.nation = r.nation || ''
   modalOpen.value = true
+}
+
+function openSelfEdit() {
+  if (rows.value[0]) {
+    openEdit(rows.value[0])
+  }
 }
 
 async function submit() {
@@ -137,6 +164,7 @@ async function submit() {
       }
       const req: PatientCreateRequest = {
         userId: form.userId,
+        accountId: form.accountId ?? undefined,
         gender: form.gender,
         age: form.age,
         birthDate: birthDateStr,
@@ -155,7 +183,11 @@ async function submit() {
         medicalInstitution: form.medicalInstitution || undefined,
         nation: form.nation || undefined,
       }
-      await patientUpdateApi(editingId.value, req)
+      if (isPatient.value) {
+        await patientUpdateMeApi(req)
+      } else {
+        await patientUpdateApi(editingId.value, req)
+      }
       message.success('更新成功')
     }
     modalOpen.value = false
@@ -166,6 +198,9 @@ async function submit() {
 }
 
 function confirmDelete(r: PatientDto) {
+  if (isPatient.value) {
+    return
+  }
   Modal.confirm({
     title: '确认删除',
     content: `确定删除患者 ${r.userId} 吗？`,
@@ -182,9 +217,9 @@ onMounted(load)
 
 <template>
   <a-card>
-    <template #title>患者管理</template>
+    <template #title>{{ isPatient ? '我的档案' : '患者管理' }}</template>
 
-    <a-form layout="inline" style="margin-bottom: 12px" @submit.prevent>
+    <a-form v-if="!isPatient" layout="inline" style="margin-bottom: 12px" @submit.prevent>
       <a-form-item label="关键词">
         <a-input v-model:value="query.keyword" placeholder="userId/phone/医疗机构" style="width: 260px" />
       </a-form-item>
@@ -198,6 +233,10 @@ onMounted(load)
         <a-button type="primary" @click="openCreate">新增</a-button>
       </a-form-item>
     </a-form>
+
+    <div v-else style="margin-bottom: 12px">
+      <a-button type="primary" @click="openSelfEdit">编辑我的档案</a-button>
+    </div>
 
     <a-table
       row-key="id"
@@ -214,13 +253,14 @@ onMounted(load)
     >
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column title="用户标识" data-index="userId" />
+      <a-table-column v-if="!isPatient" title="账号ID" data-index="accountId" width="120" />
       <a-table-column title="性别" :customRender="genderRender" width="90" />
       <a-table-column title="年龄" data-index="age" width="90" />
       <a-table-column title="出生日期" data-index="birthDate" width="130" />
       <a-table-column title="手机号" data-index="phone" width="150" />
       <a-table-column title="医疗机构" data-index="medicalInstitution" />
       <a-table-column title="民族" data-index="nation" width="120" />
-      <a-table-column title="操作" width="180">
+      <a-table-column v-if="!isPatient" title="操作" width="180">
         <template #default="{ record }">
           <a-space>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
@@ -238,8 +278,11 @@ onMounted(load)
       @cancel="() => { modalOpen = false }"
     >
       <a-form layout="vertical">
-        <a-form-item label="用户唯一标识" required>
+        <a-form-item v-if="!isPatient" label="用户唯一标识" required>
           <a-input v-model:value="form.userId" :disabled="!!editingId" placeholder="例如 U1001" />
+        </a-form-item>
+        <a-form-item v-if="!isPatient && !editingId" label="绑定账号ID">
+          <a-input-number v-model:value="form.accountId" :min="1" style="width: 100%" placeholder="例如 10001" />
         </a-form-item>
         <a-form-item label="性别" required>
           <a-radio-group v-model:value="form.gender">

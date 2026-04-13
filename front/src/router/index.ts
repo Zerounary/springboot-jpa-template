@@ -40,6 +40,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/PredictionResultsView.vue'),
       },
       {
+        path: 'health-guidances',
+        name: 'health-guidances',
+        component: () => import('../views/HealthGuidancesView.vue'),
+      },
+      {
         path: 'spark',
         name: 'spark',
         component: () => import('../views/SparkView.vue'),
@@ -82,6 +87,13 @@ router.beforeEach(async (to) => {
     } catch {
       auth.logout()
       return { name: 'login', query: { redirect: to.fullPath } }
+    }
+  }
+
+  if (auth.user?.role === 'PATIENT') {
+    const blockedRoutes = new Set(['health-records', 'questionnaires', 'fusion', 'spark'])
+    if (typeof to.name === 'string' && blockedRoutes.has(to.name)) {
+      return { name: 'home' }
     }
   }
 

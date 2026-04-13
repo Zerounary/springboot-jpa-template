@@ -30,6 +30,10 @@ export type PredictionResultUpdateRequest = {
   warningStatus: number
 }
 
+export type PredictionGenerateRequest = {
+  patientId: number
+}
+
 export function predictionResultPageApi(params: { page: number; size: number; patientId?: number | null }) {
   return request<IPage<PredictionResultDto>>(
     http.get<ApiResponse<IPage<PredictionResultDto>>>('/api/prediction-results', {
@@ -42,8 +46,23 @@ export function predictionResultPageApi(params: { page: number; size: number; pa
   )
 }
 
+export function predictionResultMineApi(params: { page: number; size: number }) {
+  return request<IPage<PredictionResultDto>>(
+    http.get<ApiResponse<IPage<PredictionResultDto>>>('/api/prediction-results/mine', {
+      params: {
+        page: params.page,
+        size: params.size,
+      },
+    }),
+  )
+}
+
 export function predictionResultDetailApi(id: number) {
   return request<PredictionResultDto>(http.get<ApiResponse<PredictionResultDto>>(`/api/prediction-results/${id}`))
+}
+
+export function predictionResultGenerateApi(req: PredictionGenerateRequest) {
+  return request<PredictionResultDto>(http.post<ApiResponse<PredictionResultDto>>('/api/prediction-results/generate', req))
 }
 
 export function predictionResultCreateApi(req: PredictionResultCreateRequest) {

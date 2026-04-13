@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.app.backend.common.BizException;
+import com.app.backend.common.UserRole;
 import com.app.backend.dto.UserCreateRequest;
 import com.app.backend.dto.UserDto;
 import com.app.backend.dto.UserUpdateRequest;
 import com.app.backend.entity.User;
 import com.app.backend.repository.UserRepository;
-import com.app.backend.service.PasswordService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +36,7 @@ public class UserService {
         User user = new User();
         user.setUsername(req.getUsername());
         user.setPasswordHash(passwordService.hash(req.getPassword()));
+        user.setRole(UserRole.from(req.getRole()).name());
         user.setNickname(req.getNickname());
         user.setEmail(req.getEmail());
         userRepository.insert(user);
@@ -106,6 +107,7 @@ public class UserService {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
+        dto.setRole(user.getRole());
         dto.setNickname(user.getNickname());
         dto.setEmail(user.getEmail());
         dto.setCreatedAt(user.getCreatedAt());

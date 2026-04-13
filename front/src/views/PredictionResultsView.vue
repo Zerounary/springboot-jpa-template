@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useAuthStore } from '../stores/auth'
+import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
 import {
   predictionResultCreateApi,
   predictionResultDeleteApi,
@@ -26,6 +27,10 @@ const pageSize = ref(10)
 const isPatient = computed(() => auth.user?.role === 'PATIENT')
 const canManage = computed(() => auth.user?.role === 'DOCTOR' || auth.user?.role === 'ADMIN')
 
+const patientOptions = ref<PatientDto[]>([])
+const patientLabelMap = ref<Record<number, string>>({})
+const patientSearching = ref(false)
+
 const query = reactive({
   patientId: null as number | null,
 })
@@ -44,6 +49,47 @@ const form = reactive({
 })
 
 const modalTitle = computed(() => (editingId.value ? '编辑预测结果' : '新增预测结果'))
+
+function patientLabel(p: PatientDto) {
+  const phone = p.phone ? ` / ${p.phone}` : ''
+  return `${p.userId}${phone}`
+}
+
+async function searchPatients(keyword: string) {
+  if (isPatient.value) {
+    return
+  }
+  patientSearching.value = true
+  try {
+    const pageData = await patientPageApi({ page: 0, size: 20, keyword: keyword || null })
+    patientOptions.value = pageData.records
+    const map = { ...patientLabelMap.value }
+    for (const p of pageData.records) {
+      map[p.id] = patientLabel(p)
+    }
+    patientLabelMap.value = map
+  } finally {
+    patientSearching.value = false
+  }
+}
+
+async function ensurePatientLabels(ids: number[]) {
+  if (isPatient.value) {
+    return
+  }
+  const missing = Array.from(new Set(ids)).filter((id) => !patientLabelMap.value[id])
+  if (!missing.length) {
+    return
+  }
+  const details = await Promise.all(missing.map((id) => patientDetailApi(id).catch(() => null)))
+  const map = { ...patientLabelMap.value }
+  for (const p of details) {
+    if (p) {
+      map[p.id] = patientLabel(p)
+    }
+  }
+  patientLabelMap.value = map
+}
 
 function showTotal(t: number) {
   return `共 ${t} 条`
@@ -125,9 +171,20 @@ async function load() {
         })
     rows.value = data.records
     total.value = data.total
+
+    if (!isPatient.value) {
+      await ensurePatientLabels(data.records.map((r) => r.patientId))
+    }
   } finally {
     loading.value = false
   }
+}
+
+function patientRender({ record }: { record: PredictionResultDto }) {
+  if (isPatient.value) {
+    return ''
+  }
+  return patientLabelMap.value[record.patientId] || String(record.patientId)
 }
 
 function labelText(v: number) {
@@ -257,7 +314,20 @@ onMounted(load)
 
     <a-form v-if="!isPatient" layout="inline" style="margin-bottom: 12px" @submit.prevent>
       <a-form-item label="patientId">
-        <a-input-number v-model:value="query.patientId" :min="1" style="width: 180px" placeholder="按患者过滤" />
+        <a-select
+          v-model:value="query.patientId"
+          show-search
+          allow-clear
+          :filter-option="false"
+          :not-found-content="patientSearching ? '搜索中...' : '无数据'"
+          style="width: 260px"
+          placeholder="搜索患者（userId/phone）"
+          @search="searchPatients"
+        >
+          <a-select-option v-for="p in patientOptions" :key="p.id" :value="p.id">
+            {{ patientLabel(p) }}
+          </a-select-option>
+        </a-select>
       </a-form-item>
       <a-form-item>
         <a-button type="primary" :loading="loading" @click="onSearch">查询</a-button>
@@ -289,6 +359,7 @@ onMounted(load)
     >
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
+      <a-table-column v-if="!isPatient" title="患者" :customRender="patientRender" width="200" />
       <a-table-column title="预测时间" data-index="predictionTime" width="180" />
       <a-table-column title="概率" :customRender="probRender" width="100" />
       <a-table-column title="标签" :customRender="labelRender" width="100" />
@@ -315,7 +386,18 @@ onMounted(load)
     >
       <a-form layout="vertical">
         <a-form-item v-if="!editingId && !isPatient" label="patientId" required>
-          <a-input-number v-model:value="form.patientId" :min="1" style="width: 100%" />
+          <a-select
+            v-model:value="form.patientId"
+            show-search
+            :filter-option="false"
+            :not-found-content="patientSearching ? '搜索中...' : '无数据'"
+            placeholder="搜索患者（userId/phone）"
+            @search="searchPatients"
+          >
+            <a-select-option v-for="p in patientOptions" :key="p.id" :value="p.id">
+              {{ patientLabel(p) }}
+            </a-select-option>
+          </a-select>
         </a-form-item>
 
         <a-form-item label="预测时间" required>

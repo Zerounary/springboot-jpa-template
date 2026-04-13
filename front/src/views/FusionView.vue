@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
+import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
 import {
   fusionDetailApi,
   fusionPageApi,
@@ -14,6 +15,10 @@ const rows = ref<HypertensionFusionDto[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+
+const patientOptions = ref<PatientDto[]>([])
+const patientLabelMap = ref<Record<number, string>>({})
+const patientSearching = ref(false)
 
 const query = reactive({
   keyword: '',
@@ -61,9 +66,50 @@ async function load() {
     })
     rows.value = data.records
     total.value = data.total
+
+    await ensurePatientLabels(data.records.map((r) => r.patientId))
   } finally {
     loading.value = false
   }
+}
+
+function patientLabel(p: PatientDto) {
+  const phone = p.phone ? ` / ${p.phone}` : ''
+  return `${p.userId}${phone}`
+}
+
+async function searchPatients(keyword: string) {
+  patientSearching.value = true
+  try {
+    const pageData = await patientPageApi({ page: 0, size: 20, keyword: keyword || null })
+    patientOptions.value = pageData.records
+    const map = { ...patientLabelMap.value }
+    for (const p of pageData.records) {
+      map[p.id] = patientLabel(p)
+    }
+    patientLabelMap.value = map
+  } finally {
+    patientSearching.value = false
+  }
+}
+
+async function ensurePatientLabels(ids: number[]) {
+  const missing = Array.from(new Set(ids)).filter((id) => !patientLabelMap.value[id])
+  if (!missing.length) {
+    return
+  }
+  const details = await Promise.all(missing.map((id) => patientDetailApi(id).catch(() => null)))
+  const map = { ...patientLabelMap.value }
+  for (const p of details) {
+    if (p) {
+      map[p.id] = patientLabel(p)
+    }
+  }
+  patientLabelMap.value = map
+}
+
+function patientRender({ record }: { record: HypertensionFusionDto }) {
+  return patientLabelMap.value[record.patientId] || String(record.patientId)
 }
 
 function genderText(v: number) {
@@ -202,6 +248,7 @@ onMounted(load)
     >
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column title="patientId" data-index="patientId" width="100" />
+      <a-table-column title="患者" :customRender="patientRender" width="200" />
       <a-table-column title="userId" data-index="userId" width="140" />
       <a-table-column title="年龄" data-index="age" width="90" />
       <a-table-column title="性别" :customRender="genderRender" width="90" />
@@ -258,7 +305,19 @@ onMounted(load)
     >
       <a-form layout="vertical">
         <a-form-item label="patientId" required>
-          <a-input-number v-model:value="syncForm.patientId" :min="1" style="width: 100%" />
+          <a-select
+            v-model:value="syncForm.patientId"
+            show-search
+            allow-clear
+            :filter-option="false"
+            :not-found-content="patientSearching ? '搜索中...' : '无数据'"
+            placeholder="搜索患者（userId/phone）"
+            @search="searchPatients"
+          >
+            <a-select-option v-for="p in patientOptions" :key="p.id" :value="p.id">
+              {{ patientLabel(p) }}
+            </a-select-option>
+          </a-select>
         </a-form-item>
         <a-form-item label="hypertensionLabel（可选，空则后端自动推断）">
           <a-select v-model:value="syncForm.hypertensionLabel" allow-clear>

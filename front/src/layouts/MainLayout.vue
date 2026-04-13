@@ -36,6 +36,7 @@ function logout() {
       <a-menu theme="dark" mode="inline" :selected-keys="selectedKeys" @click="onMenuClick">
         <a-menu-item key="home">概览</a-menu-item>
         <a-menu-item key="patients">{{ isPatient ? '我的档案' : '患者' }}</a-menu-item>
+        <a-menu-item v-if="!isPatient" key="organizations">机构维护</a-menu-item>
         <a-menu-item v-if="!isPatient" key="health-records">健康档案</a-menu-item>
         <a-menu-item key="physical-exams">{{ isPatient ? '我的体检' : '体检数据' }}</a-menu-item>
         <a-menu-item v-if="!isPatient" key="questionnaires">问卷数据</a-menu-item>

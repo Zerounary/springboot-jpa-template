@@ -13,6 +13,8 @@ public class PatientCreateRequest {
 
     private Long accountId;
 
+    private Long organizationId;
+
     @NotNull
     private Integer gender;
 
@@ -26,8 +28,6 @@ public class PatientCreateRequest {
     @Size(max = 32)
     private String phone;
 
-    @NotBlank
-    @Size(max = 128)
     private String medicalInstitution;
 
     @Size(max = 32)
@@ -47,6 +47,14 @@ public class PatientCreateRequest {
 
     public void setAccountId(Long accountId) {
         this.accountId = accountId;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public Integer getGender() {

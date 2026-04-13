@@ -18,6 +18,8 @@ public class PatientUpdateRequest {
     @Size(max = 32)
     private String phone;
 
+    private Long organizationId;
+
     @Size(max = 128)
     private String medicalInstitution;
 
@@ -54,6 +56,14 @@ public class PatientUpdateRequest {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public String getMedicalInstitution() {

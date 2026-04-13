@@ -8,6 +8,7 @@ public class PatientDto {
     private Long id;
     private String userId;
     private Long accountId;
+    private Long organizationId;
     private Integer gender;
     private Integer age;
     private LocalDate birthDate;
@@ -39,6 +40,14 @@ public class PatientDto {
 
     public void setAccountId(Long accountId) {
         this.accountId = accountId;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public Integer getGender() {

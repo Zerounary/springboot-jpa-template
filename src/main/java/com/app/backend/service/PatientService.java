@@ -14,13 +14,17 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.app.backend.service.OrganizationService;
+
 @Service
 public class PatientService {
 
     private final PatientRepository patientRepository;
+    private final OrganizationService organizationService;
 
-    public PatientService(PatientRepository patientRepository) {
+    public PatientService(PatientRepository patientRepository, OrganizationService organizationService) {
         this.patientRepository = patientRepository;
+        this.organizationService = organizationService;
     }
 
     @Transactional
@@ -33,11 +37,19 @@ public class PatientService {
         Patient p = new Patient();
         p.setUserId(req.getUserId());
         p.setAccountId(req.getAccountId());
+        p.setOrganizationId(req.getOrganizationId());
         p.setGender(req.getGender());
         p.setAge(req.getAge());
         p.setBirthDate(req.getBirthDate());
         p.setPhone(req.getPhone());
-        p.setMedicalInstitution(req.getMedicalInstitution());
+        if (req.getOrganizationId() != null) {
+            p.setMedicalInstitution(organizationService.getById(req.getOrganizationId()).getOrgName());
+        } else if (req.getMedicalInstitution() != null) {
+            p.setMedicalInstitution(req.getMedicalInstitution());
+        }
+        if (p.getMedicalInstitution() == null) {
+            throw new BizException(400, "请选择医疗机构");
+        }
         p.setNation(req.getNation());
         patientRepository.insert(p);
         return toDto(p);
@@ -54,6 +66,10 @@ public class PatientService {
         p.setBirthDate(req.getBirthDate());
         if (req.getPhone() != null) {
             p.setPhone(req.getPhone());
+        }
+        if (req.getOrganizationId() != null) {
+            p.setOrganizationId(req.getOrganizationId());
+            p.setMedicalInstitution(organizationService.getById(req.getOrganizationId()).getOrgName());
         }
         if (req.getMedicalInstitution() != null) {
             p.setMedicalInstitution(req.getMedicalInstitution());
@@ -137,6 +153,7 @@ public class PatientService {
         dto.setId(p.getId());
         dto.setUserId(p.getUserId());
         dto.setAccountId(p.getAccountId());
+        dto.setOrganizationId(p.getOrganizationId());
         dto.setGender(p.getGender());
         dto.setAge(p.getAge());
         dto.setBirthDate(p.getBirthDate());

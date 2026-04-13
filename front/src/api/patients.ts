@@ -5,6 +5,7 @@ export type PatientDto = {
   id: number
   userId: string
   accountId?: number
+  organizationId?: number
   gender: number
   age: number
   birthDate: string
@@ -18,11 +19,12 @@ export type PatientDto = {
 export type PatientCreateRequest = {
   userId: string
   accountId?: number
+  organizationId?: number
   gender: number
   age: number
   birthDate: string
   phone: string
-  medicalInstitution: string
+  medicalInstitution?: string
   nation?: string
 }
 
@@ -31,6 +33,7 @@ export type PatientUpdateRequest = {
   age: number
   birthDate: string
   phone?: string
+  organizationId?: number
   medicalInstitution?: string
   nation?: string
 }

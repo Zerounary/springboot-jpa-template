@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useAuthStore } from '../stores/auth'
+import { organizationListApi, type OrganizationDto } from '../api/organizations'
 import {
   patientCreateApi,
   patientDeleteApi,
@@ -32,9 +33,13 @@ const modalOpen = ref(false)
 const modalLoading = ref(false)
 const editingId = ref<number | null>(null)
 
+const orgOptions = ref<OrganizationDto[]>([])
+const orgSearching = ref(false)
+
 const form = reactive({
   userId: '',
   accountId: null as number | null,
+  organizationId: null as number | null,
   gender: 1,
   age: 40,
   birthDate: null as Dayjs | null,
@@ -95,9 +100,23 @@ async function load() {
   }
 }
 
+async function loadOrganizations(keyword: string | null) {
+  orgSearching.value = true
+  try {
+    orgOptions.value = await organizationListApi({ keyword: keyword || null })
+  } finally {
+    orgSearching.value = false
+  }
+}
+
+function onOrgSearch(keyword: string) {
+  loadOrganizations(keyword || null)
+}
+
 function resetForm() {
   form.userId = ''
   form.accountId = null
+  form.organizationId = null
   form.gender = 1
   form.age = 40
   form.birthDate = null
@@ -119,6 +138,7 @@ function openEdit(r: PatientDto) {
   editingId.value = r.id
   form.userId = r.userId
   form.accountId = r.accountId ?? null
+  form.organizationId = r.organizationId ?? null
   form.gender = r.gender
   form.age = r.age
   form.birthDate = r.birthDate ? dayjs(r.birthDate) : null
@@ -151,8 +171,8 @@ async function submit() {
     message.warning('请输入手机号')
     return
   }
-  if (!form.medicalInstitution) {
-    message.warning('请输入医疗机构')
+  if (!form.organizationId && !form.medicalInstitution) {
+    message.warning('请选择医疗机构')
     return
   }
   modalLoading.value = true
@@ -166,11 +186,12 @@ async function submit() {
       const req: PatientCreateRequest = {
         userId: form.userId,
         accountId: form.accountId ?? undefined,
+        organizationId: form.organizationId ?? undefined,
         gender: form.gender,
         age: form.age,
         birthDate: birthDateStr,
         phone: form.phone,
-        medicalInstitution: form.medicalInstitution,
+        medicalInstitution: form.medicalInstitution || undefined,
         nation: form.nation || undefined,
       }
       await patientCreateApi(req)
@@ -181,6 +202,7 @@ async function submit() {
         age: form.age,
         birthDate: birthDateStr,
         phone: form.phone || undefined,
+        organizationId: form.organizationId ?? undefined,
         medicalInstitution: form.medicalInstitution || undefined,
         nation: form.nation || undefined,
       }
@@ -214,6 +236,10 @@ function confirmDelete(r: PatientDto) {
 }
 
 onMounted(load)
+
+onMounted(() => {
+  loadOrganizations(null)
+})
 </script>
 
 <template>
@@ -313,7 +339,19 @@ onMounted(load)
           <a-input v-model:value="form.phone" />
         </a-form-item>
         <a-form-item label="所属基层医疗机构" required>
-          <a-input v-model:value="form.medicalInstitution" />
+          <a-select
+            v-model:value="form.organizationId"
+            show-search
+            allow-clear
+            :filter-option="false"
+            :not-found-content="orgSearching ? '加载中...' : '无数据'"
+            placeholder="选择机构"
+            @search="onOrgSearch"
+          >
+            <a-select-option v-for="o in orgOptions" :key="o.id" :value="o.id">
+              {{ o.orgName }}
+            </a-select-option>
+          </a-select>
         </a-form-item>
         <a-form-item label="民族">
           <a-input v-model:value="form.nation" />

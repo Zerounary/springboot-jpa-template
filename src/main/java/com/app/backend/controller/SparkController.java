@@ -28,4 +28,10 @@ public class SparkController {
         accessService.requireDoctorOrAdmin(request);
         return ApiResponse.ok(sparkMlService.trainTest(req));
     }
+
+    @PostMapping("/train")
+    public ApiResponse<SparkTrainResultDto> train(@RequestBody(required = false) SparkTrainRequest req, HttpServletRequest request) {
+        accessService.requireDoctorOrAdmin(request);
+        return ApiResponse.ok(sparkMlService.trainAndSave(req));
+    }
 }

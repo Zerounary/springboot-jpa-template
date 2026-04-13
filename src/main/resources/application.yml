@@ -19,6 +19,8 @@ app:
     secret: change-me-to-a-long-random-string
     issuer: backend
     expire-seconds: 7200
+  spark:
+    hadoop-home: D:/Develop/DB/hadoop-2.8.1
 
 mybatis-plus:
   configuration:

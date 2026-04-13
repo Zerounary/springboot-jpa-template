@@ -44,7 +44,7 @@ public class PredictionResultController {
     @PostMapping("/generate")
     public ApiResponse<PredictionResultDto> generate(@Valid @RequestBody PredictionGenerateRequest req, HttpServletRequest request) {
         accessService.requireDoctorOrAdmin(request);
-        return ApiResponse.ok(predictionResultService.generateByPatientId(req.getPatientId()));
+        return ApiResponse.ok(predictionResultService.generateByPatientId(req.getPatientId(), req.getModelId()));
     }
 
     @GetMapping("/mine")

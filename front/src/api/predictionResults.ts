@@ -4,6 +4,7 @@ import type { ApiResponse, IPage } from './types'
 export type PredictionResultDto = {
   id: number
   patientId: number
+  modelId?: number
   predictionTime: string
   predictionProb: number
   predictionLabel: number
@@ -32,6 +33,7 @@ export type PredictionResultUpdateRequest = {
 
 export type PredictionGenerateRequest = {
   patientId: number
+  modelId?: number
 }
 
 export function predictionResultPageApi(params: {

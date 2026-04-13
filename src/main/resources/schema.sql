@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS questionnaires (
 CREATE TABLE IF NOT EXISTS prediction_results (
   id BIGINT NOT NULL AUTO_INCREMENT,
   patient_id BIGINT NOT NULL,
+  model_id BIGINT NULL,
   prediction_time DATETIME NOT NULL,
   prediction_prob DECIMAL(6,5) NOT NULL,
   prediction_label TINYINT NOT NULL,
@@ -108,6 +109,7 @@ CREATE TABLE IF NOT EXISTS prediction_results (
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   PRIMARY KEY (id),
+  KEY idx_prediction_results_model_id (model_id),
   KEY idx_prediction_results_patient_id_time (patient_id, prediction_time),
   CONSTRAINT fk_prediction_results_patient_id FOREIGN KEY (patient_id) REFERENCES patients (id)
 );
@@ -155,6 +157,31 @@ CREATE TABLE IF NOT EXISTS hypertension_fusion (
   CONSTRAINT fk_hypertension_fusion_patient_id FOREIGN KEY (patient_id) REFERENCES patients (id)
 );
 
+CREATE TABLE IF NOT EXISTS ml_models (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  model_name VARCHAR(128) NOT NULL,
+  version_tag VARCHAR(64) NOT NULL,
+  algorithm VARCHAR(64) NOT NULL,
+  feature_columns TEXT NOT NULL,
+  model_path VARCHAR(255) NOT NULL,
+  param_json TEXT NULL,
+  metric_json TEXT NULL,
+  feature_importance_json TEXT NULL,
+  total_count BIGINT NULL,
+  train_count BIGINT NULL,
+  test_count BIGINT NULL,
+  auc DECIMAL(10,6) NULL,
+  accuracy DECIMAL(10,6) NULL,
+  trained_at DATETIME NOT NULL,
+  is_active TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_ml_models_version_tag (version_tag),
+  KEY idx_ml_models_trained_at (trained_at),
+  KEY idx_ml_models_is_active (is_active)
+);
+
 SET @ddl = (
   SELECT IF(
     EXISTS(
@@ -166,6 +193,58 @@ SET @ddl = (
     ),
     'SELECT 1',
     'ALTER TABLE users ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT ''PATIENT''' 
+  )
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = (
+  SELECT IF(
+    EXISTS(
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'prediction_results'
+        AND COLUMN_NAME = 'model_id'
+    ),
+    'SELECT 1',
+    'ALTER TABLE prediction_results ADD COLUMN model_id BIGINT NULL'
+  )
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = (
+  SELECT IF(
+    EXISTS(
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'prediction_results'
+        AND INDEX_NAME = 'idx_prediction_results_model_id'
+    ),
+    'SELECT 1',
+    'ALTER TABLE prediction_results ADD INDEX idx_prediction_results_model_id (model_id)'
+  )
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = (
+  SELECT IF(
+    EXISTS(
+      SELECT 1
+      FROM information_schema.TABLE_CONSTRAINTS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'prediction_results'
+        AND CONSTRAINT_NAME = 'fk_prediction_results_model_id'
+        AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+    ),
+    'SELECT 1',
+    'ALTER TABLE prediction_results ADD CONSTRAINT fk_prediction_results_model_id FOREIGN KEY (model_id) REFERENCES ml_models (id)'
   )
 );
 PREPARE stmt FROM @ddl;

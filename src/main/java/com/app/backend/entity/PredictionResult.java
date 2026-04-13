@@ -18,6 +18,9 @@ public class PredictionResult {
     @TableField("patient_id")
     private Long patientId;
 
+    @TableField("model_id")
+    private Long modelId;
+
     @TableField("prediction_time")
     private LocalDateTime predictionTime;
 
@@ -53,6 +56,14 @@ public class PredictionResult {
 
     public void setPatientId(Long patientId) {
         this.patientId = patientId;
+    }
+
+    public Long getModelId() {
+        return modelId;
+    }
+
+    public void setModelId(Long modelId) {
+        this.modelId = modelId;
     }
 
     public LocalDateTime getPredictionTime() {

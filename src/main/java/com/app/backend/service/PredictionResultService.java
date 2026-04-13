@@ -5,6 +5,7 @@ import com.app.backend.dto.PredictionResultCreateRequest;
 import com.app.backend.dto.PredictionResultDto;
 import com.app.backend.dto.PredictionResultUpdateRequest;
 import com.app.backend.entity.HealthRecord;
+import com.app.backend.entity.MlModel;
 import com.app.backend.entity.PhysicalExam;
 import com.app.backend.entity.PredictionResult;
 import com.app.backend.entity.Questionnaire;
@@ -126,6 +127,11 @@ public class PredictionResultService {
 
     @Transactional
     public PredictionResultDto generateByPatientId(Long patientId) {
+        return generateByPatientId(patientId, null);
+    }
+
+    @Transactional
+    public PredictionResultDto generateByPatientId(Long patientId, Long modelId) {
         patientService.getById(patientId);
         PhysicalExam exam = physicalExamService.getLatestByPatientId(patientId);
         if (exam == null) {
@@ -134,7 +140,8 @@ public class PredictionResultService {
 
         hypertensionFusionService.syncOne(patientId, null);
 
-        double p1 = sparkMlService.predictProbabilityByPatientId(patientId);
+        MlModel usedModel = sparkMlService.resolveModel(modelId);
+        double p1 = sparkMlService.predictProbabilityByPatientId(patientId, modelId);
         BigDecimal probability = BigDecimal.valueOf(Math.min(0.99999d, Math.max(0.00001d, p1)))
                 .setScale(5, RoundingMode.HALF_UP);
         int label = probability.compareTo(new BigDecimal("0.50000")) >= 0 ? 1 : 0;
@@ -197,6 +204,7 @@ public class PredictionResultService {
 
         PredictionResult result = new PredictionResult();
         result.setPatientId(patientId);
+        result.setModelId(usedModel.getId());
         result.setPredictionTime(LocalDateTime.now());
         result.setPredictionProb(probability);
         result.setPredictionLabel(label);
@@ -211,6 +219,7 @@ public class PredictionResultService {
         PredictionResultDto dto = new PredictionResultDto();
         dto.setId(r.getId());
         dto.setPatientId(r.getPatientId());
+        dto.setModelId(r.getModelId());
         dto.setPredictionTime(r.getPredictionTime());
         dto.setPredictionProb(r.getPredictionProb());
         dto.setPredictionLabel(r.getPredictionLabel());

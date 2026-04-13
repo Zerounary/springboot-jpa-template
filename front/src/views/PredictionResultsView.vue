@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
+import { mlModelListApi, type MlModelDto } from '../api/mlModels'
 import { useAuthStore } from '../stores/auth'
 import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
 import {
@@ -31,9 +32,11 @@ const canManage = computed(() => auth.user?.role === 'DOCTOR' || auth.user?.role
 const patientOptions = ref<PatientDto[]>([])
 const patientLabelMap = ref<Record<number, string>>({})
 const patientSearching = ref(false)
+const modelOptions = ref<MlModelDto[]>([])
 
 const query = reactive({
   patientId: null as number | null,
+  modelId: null as number | null,
   timeRange: null as [Dayjs, Dayjs] | null,
 })
 
@@ -59,6 +62,13 @@ const modalTitle = computed(() => (editingId.value ? '编辑预测结果' : '新
 function patientLabel(p: PatientDto) {
   const phone = p.phone ? ` / ${p.phone}` : ''
   return `${p.userId}${phone}`
+}
+
+async function loadModels() {
+  if (isPatient.value) {
+    return
+  }
+  modelOptions.value = await mlModelListApi({ activeOnly: false })
 }
 
 async function searchPatients(keyword: string) {
@@ -114,6 +124,7 @@ function onSearch() {
 
 function onReset() {
   query.patientId = null
+  query.modelId = null
   query.timeRange = null
   page.value = 1
   load()
@@ -144,7 +155,7 @@ async function generatePrediction() {
   }
   loading.value = true
   try {
-    await predictionResultGenerateApi({ patientId: query.patientId })
+    await predictionResultGenerateApi({ patientId: query.patientId, modelId: query.modelId ?? undefined })
     message.success('预测生成成功')
     await load()
   } finally {
@@ -329,6 +340,7 @@ function toGuidanceCreate(r: PredictionResultDto) {
 }
 
 onMounted(load)
+onMounted(loadModels)
 </script>
 
 <template>
@@ -349,6 +361,13 @@ onMounted(load)
         >
           <a-select-option v-for="p in patientOptions" :key="p.id" :value="p.id">
             {{ patientLabel(p) }}
+          </a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="模型">
+        <a-select v-model:value="query.modelId" allow-clear style="width: 260px" placeholder="选择模型版本（默认最新激活）">
+          <a-select-option v-for="m in modelOptions" :key="m.id" :value="m.id">
+            {{ m.modelName }} / {{ m.versionTag }} / {{ m.algorithm }}
           </a-select-option>
         </a-select>
       </a-form-item>
@@ -385,6 +404,7 @@ onMounted(load)
     >
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column v-if="!isPatient" title="patientId" data-index="patientId" width="100" />
+      <a-table-column v-if="!isPatient" title="modelId" data-index="modelId" width="100" />
       <a-table-column v-if="!isPatient" title="患者" :customRender="patientRender" width="200" />
       <a-table-column title="预测时间" data-index="predictionTime" width="180" />
       <a-table-column title="概率" :customRender="probRender" width="100" />
@@ -408,6 +428,7 @@ onMounted(load)
         <a-descriptions v-if="detail" bordered :column="2">
           <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
           <a-descriptions-item label="patientId">{{ detail.patientId }}</a-descriptions-item>
+          <a-descriptions-item label="modelId">{{ detail.modelId || '-' }}</a-descriptions-item>
           <a-descriptions-item label="预测时间">{{ detail.predictionTime }}</a-descriptions-item>
           <a-descriptions-item label="概率">{{ detail.predictionProb }}</a-descriptions-item>
           <a-descriptions-item label="标签">{{ labelText(detail.predictionLabel) }}</a-descriptions-item>

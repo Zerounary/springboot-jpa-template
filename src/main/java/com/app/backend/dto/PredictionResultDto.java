@@ -7,6 +7,7 @@ public class PredictionResultDto {
 
     private Long id;
     private Long patientId;
+    private Long modelId;
     private LocalDateTime predictionTime;
     private BigDecimal predictionProb;
     private Integer predictionLabel;
@@ -29,6 +30,14 @@ public class PredictionResultDto {
 
     public void setPatientId(Long patientId) {
         this.patientId = patientId;
+    }
+
+    public Long getModelId() {
+        return modelId;
+    }
+
+    public void setModelId(Long modelId) {
+        this.modelId = modelId;
     }
 
     public LocalDateTime getPredictionTime() {

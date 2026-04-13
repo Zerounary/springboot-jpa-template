@@ -1,5 +1,7 @@
 server:
   port: 8080
+  tomcat:
+    connection-timeout: 1800000
 
 spring:
   application:
@@ -13,6 +15,9 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+  mvc:
+    async:
+      request-timeout: 1800000
 
 app:
   jwt:

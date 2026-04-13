@@ -1,6 +1,8 @@
 import { http, request } from './http'
 import type { ApiResponse } from './types'
 
+const SPARK_TRAIN_TIMEOUT = 30 * 60 * 1000
+
 export type SparkTrainRequest = {
   modelName?: string
   testFraction?: number
@@ -25,9 +27,9 @@ export type SparkTrainResultDto = {
 }
 
 export function sparkTrainTestApi(req?: SparkTrainRequest | null) {
-  return request<SparkTrainResultDto>(http.post<ApiResponse<SparkTrainResultDto>>('/api/spark/train-test', req ?? null))
+  return request<SparkTrainResultDto>(http.post<ApiResponse<SparkTrainResultDto>>('/api/spark/train-test', req ?? null, { timeout: SPARK_TRAIN_TIMEOUT }))
 }
 
 export function sparkTrainApi(req?: SparkTrainRequest | null) {
-  return request<SparkTrainResultDto>(http.post<ApiResponse<SparkTrainResultDto>>('/api/spark/train', req ?? null))
+  return request<SparkTrainResultDto>(http.post<ApiResponse<SparkTrainResultDto>>('/api/spark/train', req ?? null, { timeout: SPARK_TRAIN_TIMEOUT }))
 }

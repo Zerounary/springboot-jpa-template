@@ -295,7 +295,7 @@ onMounted(load)
     <template #title>问卷数据</template>
 
     <a-form layout="inline" style="margin-bottom: 12px" @submit.prevent>
-      <a-form-item label="patientId">
+      <a-form-item label="患者">
         <a-select
           v-model:value="query.patientId"
           show-search
@@ -336,7 +336,7 @@ onMounted(load)
       @change="onTableChange"
     >
       <a-table-column title="ID" data-index="id" width="80" />
-      <a-table-column title="patientId" data-index="patientId" width="100" />
+      
       <a-table-column title="患者" :customRender="patientRender" width="200" />
       <a-table-column title="填写时间" data-index="questionnaireTime" width="180" />
       <a-table-column title="吸烟" :customRender="smokingRender" width="100" />
@@ -365,7 +365,7 @@ onMounted(load)
       width="820px"
     >
       <a-form layout="vertical">
-        <a-form-item v-if="!editingId" label="patientId" required>
+        <a-form-item v-if="!editingId" label="患者" required>
           <a-select
             v-model:value="form.patientId"
             show-search

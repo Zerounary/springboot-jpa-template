@@ -268,7 +268,7 @@ onMounted(load)
     <template #title>{{ isPatient ? '我的体检' : '体检数据' }}</template>
 
     <a-form v-if="!isPatient" layout="inline" style="margin-bottom: 12px" @submit.prevent>
-      <a-form-item label="patientId">
+      <a-form-item label="患者">
         <a-select
           v-model:value="query.patientId"
           show-search
@@ -339,7 +339,7 @@ onMounted(load)
       width="780px"
     >
       <a-form layout="vertical">
-        <a-form-item v-if="!editingId && !isPatient" label="patientId" required>
+        <a-form-item v-if="!editingId && !isPatient" label="患者" required>
           <a-select
             v-model:value="form.patientId"
             show-search

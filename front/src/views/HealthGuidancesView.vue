@@ -285,7 +285,7 @@ onMounted(() => {
     <template #title>{{ isPatient ? '我的健康指导' : '健康指导' }}</template>
 
     <a-form v-if="!isPatient" layout="inline" style="margin-bottom: 12px" @submit.prevent>
-      <a-form-item label="patientId">
+      <a-form-item label="患者">
         <a-select
           v-model:value="query.patientId"
           show-search
@@ -354,7 +354,7 @@ onMounted(() => {
       width="760px"
     >
       <a-form layout="vertical">
-        <a-form-item v-if="!editingId" label="patientId" required>
+        <a-form-item v-if="!editingId" label="患者" required>
           <a-select
             v-model:value="form.patientId"
             show-search

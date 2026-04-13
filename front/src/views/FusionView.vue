@@ -247,7 +247,7 @@ onMounted(load)
       :scroll="{ x: 1200 }"
     >
       <a-table-column title="ID" data-index="id" width="80" />
-      <a-table-column title="patientId" data-index="patientId" width="100" />
+      
       <a-table-column title="患者" :customRender="patientRender" width="200" />
       <a-table-column title="userId" data-index="userId" width="140" />
       <a-table-column title="年龄" data-index="age" width="90" />
@@ -275,7 +275,7 @@ onMounted(load)
     <a-modal v-model:open="detailOpen" :title="detailTitle" :footer="null" width="820px">
       <a-spin :spinning="detailLoading">
         <a-descriptions v-if="detail" bordered :column="2">
-          <a-descriptions-item label="patientId">{{ detail.patientId }}</a-descriptions-item>
+          <a-descriptions-item label="患者">{{ detail.patientId }}</a-descriptions-item>
           <a-descriptions-item label="userId">{{ detail.userId }}</a-descriptions-item>
           <a-descriptions-item label="年龄">{{ detail.age }}</a-descriptions-item>
           <a-descriptions-item label="性别">{{ genderText(detail.gender) }}</a-descriptions-item>
@@ -304,7 +304,7 @@ onMounted(load)
       width="520px"
     >
       <a-form layout="vertical">
-        <a-form-item label="patientId" required>
+        <a-form-item label="患者" required>
           <a-select
             v-model:value="syncForm.patientId"
             show-search

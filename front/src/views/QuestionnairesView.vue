@@ -6,6 +6,7 @@ import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patien
 import {
   questionnaireCreateApi,
   questionnaireDeleteApi,
+  questionnaireDetailApi,
   questionnairePageApi,
   questionnaireUpdateApi,
   type QuestionnaireCreateRequest,
@@ -25,7 +26,12 @@ const patientSearching = ref(false)
 
 const query = reactive({
   patientId: null as number | null,
+  timeRange: null as [Dayjs, Dayjs] | null,
 })
+
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detail = ref<QuestionnaireDto | null>(null)
 
 const modalOpen = ref(false)
 const modalLoading = ref(false)
@@ -97,6 +103,7 @@ function onSearch() {
 
 function onReset() {
   query.patientId = null
+  query.timeRange = null
   page.value = 1
   load()
 }
@@ -136,10 +143,14 @@ function openEdit(r: QuestionnaireDto) {
 async function load() {
   loading.value = true
   try {
+    const startTime = query.timeRange ? query.timeRange[0].format('YYYY-MM-DDTHH:mm:ss') : null
+    const endTime = query.timeRange ? query.timeRange[1].format('YYYY-MM-DDTHH:mm:ss') : null
     const data = await questionnairePageApi({
       page: page.value - 1,
       size: pageSize.value,
       patientId: query.patientId,
+      startTime,
+      endTime,
     })
     rows.value = data.records
     total.value = data.total
@@ -223,6 +234,17 @@ function stressRender({ record }: { record: QuestionnaireDto }) {
 
 function habitRemarkRender({ record }: { record: QuestionnaireDto }) {
   return truncateText(record.habitRemark, 30)
+}
+
+async function openDetail(r: QuestionnaireDto) {
+  detailOpen.value = true
+  detailLoading.value = true
+  detail.value = null
+  try {
+    detail.value = await questionnaireDetailApi(r.id)
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function submit() {
@@ -311,6 +333,9 @@ onMounted(load)
           </a-select-option>
         </a-select>
       </a-form-item>
+      <a-form-item label="时间范围">
+        <a-range-picker v-model:value="query.timeRange" show-time />
+      </a-form-item>
       <a-form-item>
         <a-button type="primary" :loading="loading" @click="onSearch">查询</a-button>
       </a-form-item>
@@ -346,15 +371,35 @@ onMounted(load)
       <a-table-column title="作息" :customRender="workRestRender" width="100" />
       <a-table-column title="压力" :customRender="stressRender" width="100" />
       <a-table-column title="备注" :customRender="habitRemarkRender" />
-      <a-table-column title="操作" width="180" fixed="right">
+      <a-table-column title="操作" width="220" fixed="right">
         <template #default="{ record }">
           <a-space>
+            <a-button type="link" @click="() => openDetail(record)">详情</a-button>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
             <a-button type="link" danger @click="() => confirmDelete(record)">删除</a-button>
           </a-space>
         </template>
       </a-table-column>
     </a-table>
+
+    <a-modal v-model:open="detailOpen" title="问卷详情" :footer="null" width="920px">
+      <a-spin :spinning="detailLoading">
+        <a-descriptions v-if="detail" bordered :column="2">
+          <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
+          <a-descriptions-item label="患者">{{ patientLabelMap[detail.patientId] || detail.patientId }}</a-descriptions-item>
+          <a-descriptions-item label="填写时间">{{ detail.questionnaireTime }}</a-descriptions-item>
+          <a-descriptions-item label="吸烟">{{ smokingText(detail.smoking) }}</a-descriptions-item>
+          <a-descriptions-item label="饮酒">{{ drinkingText(detail.drinking) }}</a-descriptions-item>
+          <a-descriptions-item label="饮食">{{ dietText(detail.dietPreference) }}</a-descriptions-item>
+          <a-descriptions-item label="运动">{{ exerciseText(detail.exerciseFrequency) }}</a-descriptions-item>
+          <a-descriptions-item label="作息">{{ workRestText(detail.workRest) }}</a-descriptions-item>
+          <a-descriptions-item label="压力">{{ stressText(detail.stressLevel) }}</a-descriptions-item>
+          <a-descriptions-item label="备注" :span="2">{{ detail.habitRemark || '' }}</a-descriptions-item>
+          <a-descriptions-item label="创建时间">{{ detail.createdAt || '' }}</a-descriptions-item>
+          <a-descriptions-item label="更新时间">{{ detail.updatedAt || '' }}</a-descriptions-item>
+        </a-descriptions>
+      </a-spin>
+    </a-modal>
 
     <a-modal
       v-model:open="modalOpen"

@@ -38,6 +38,8 @@ export function healthRecordPageApi(params: {
   size: number
   patientId?: number | null
   keyword?: string | null
+  startTime?: string | null
+  endTime?: string | null
 }) {
   return request<IPage<HealthRecordDto>>(
     http.get<ApiResponse<IPage<HealthRecordDto>>>('/api/health-records', {
@@ -46,6 +48,8 @@ export function healthRecordPageApi(params: {
         size: params.size,
         patientId: params.patientId ?? undefined,
         keyword: params.keyword || undefined,
+        startTime: params.startTime ?? undefined,
+        endTime: params.endTime ?? undefined,
       },
     }),
   )

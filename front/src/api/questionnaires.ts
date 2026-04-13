@@ -39,13 +39,21 @@ export type QuestionnaireUpdateRequest = {
   habitRemark?: string
 }
 
-export function questionnairePageApi(params: { page: number; size: number; patientId?: number | null }) {
+export function questionnairePageApi(params: {
+  page: number
+  size: number
+  patientId?: number | null
+  startTime?: string | null
+  endTime?: string | null
+}) {
   return request<IPage<QuestionnaireDto>>(
     http.get<ApiResponse<IPage<QuestionnaireDto>>>('/api/questionnaires', {
       params: {
         page: params.page,
         size: params.size,
         patientId: params.patientId ?? undefined,
+        startTime: params.startTime ?? undefined,
+        endTime: params.endTime ?? undefined,
       },
     }),
   )

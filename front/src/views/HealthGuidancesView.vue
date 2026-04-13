@@ -3,10 +3,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
+import { type Dayjs } from 'dayjs'
 import { useAuthStore } from '../stores/auth'
 import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
 import {
   healthGuidanceCreateApi,
+  healthGuidanceDetailApi,
   healthGuidanceDeleteApi,
   healthGuidanceMineApi,
   healthGuidancePageApi,
@@ -34,6 +36,7 @@ const pageSize = ref(10)
 
 const query = reactive({
   patientId: null as number | null,
+  timeRange: null as [Dayjs, Dayjs] | null,
 })
 
 const modalOpen = ref(false)
@@ -49,6 +52,10 @@ const form = reactive({
 })
 
 const modalTitle = computed(() => (editingId.value ? '编辑健康指导' : '新增健康指导'))
+
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detail = ref<HealthGuidanceDto | null>(null)
 
 function patientLabel(p: PatientDto) {
   const phone = p.phone ? ` / ${p.phone}` : ''
@@ -108,6 +115,7 @@ function onSearch() {
 
 function onReset() {
   query.patientId = null
+  query.timeRange = null
   page.value = 1
   load()
 }
@@ -163,15 +171,21 @@ function openEdit(r: HealthGuidanceDto) {
 async function load() {
   loading.value = true
   try {
+    const startTime = query.timeRange ? query.timeRange[0].format('YYYY-MM-DDTHH:mm:ss') : null
+    const endTime = query.timeRange ? query.timeRange[1].format('YYYY-MM-DDTHH:mm:ss') : null
     const data = isPatient.value
       ? await healthGuidanceMineApi({
           page: page.value - 1,
           size: pageSize.value,
+          startTime,
+          endTime,
         })
       : await healthGuidancePageApi({
           page: page.value - 1,
           size: pageSize.value,
           patientId: query.patientId,
+          startTime,
+          endTime,
         })
     rows.value = data.records
     total.value = data.total
@@ -208,6 +222,17 @@ function truncateText(s: string, max = 40) {
 
 function contentRender({ record }: { record: HealthGuidanceDto }) {
   return truncateText(record.guidanceContent, 80)
+}
+
+async function openDetail(r: HealthGuidanceDto) {
+  detailOpen.value = true
+  detailLoading.value = true
+  detail.value = null
+  try {
+    detail.value = await healthGuidanceDetailApi(r.id)
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function submit() {
@@ -301,6 +326,9 @@ onMounted(() => {
           </a-select-option>
         </a-select>
       </a-form-item>
+      <a-form-item label="时间范围">
+        <a-range-picker v-model:value="query.timeRange" show-time />
+      </a-form-item>
       <a-form-item>
         <a-button type="primary" :loading="loading" @click="onSearch">查询</a-button>
       </a-form-item>
@@ -335,15 +363,33 @@ onMounted(() => {
       <a-table-column title="等级" :customRender="guidanceLevelRender" width="100" />
       <a-table-column title="内容" :customRender="contentRender" />
       <a-table-column title="创建时间" data-index="createdAt" width="180" />
-      <a-table-column v-if="!isPatient" title="操作" width="180" fixed="right">
+      <a-table-column title="操作" width="220" fixed="right">
         <template #default="{ record }">
           <a-space>
-            <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
-            <a-button type="link" danger @click="() => confirmDelete(record)">删除</a-button>
+            <a-button type="link" @click="() => openDetail(record)">详情</a-button>
+            <a-button v-if="!isPatient" type="link" @click="() => openEdit(record)">编辑</a-button>
+            <a-button v-if="!isPatient" type="link" danger @click="() => confirmDelete(record)">删除</a-button>
           </a-space>
         </template>
       </a-table-column>
     </a-table>
+
+    <a-modal v-model:open="detailOpen" title="健康指导详情" :footer="null" width="820px">
+      <a-spin :spinning="detailLoading">
+        <a-descriptions v-if="detail" bordered :column="2">
+          <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
+          <a-descriptions-item label="患者">
+            {{ isPatient ? '' : (patientLabelMap[detail.patientId] || detail.patientId) }}
+          </a-descriptions-item>
+          <a-descriptions-item label="医生账号ID">{{ detail.doctorUserId }}</a-descriptions-item>
+          <a-descriptions-item label="预测结果ID">{{ detail.predictionResultId ?? '' }}</a-descriptions-item>
+          <a-descriptions-item label="标题" :span="2">{{ detail.guidanceTitle }}</a-descriptions-item>
+          <a-descriptions-item label="等级">{{ guidanceLevelText(detail.guidanceLevel) }}</a-descriptions-item>
+          <a-descriptions-item label="创建时间">{{ detail.createdAt || '' }}</a-descriptions-item>
+          <a-descriptions-item label="内容" :span="2">{{ detail.guidanceContent }}</a-descriptions-item>
+        </a-descriptions>
+      </a-spin>
+    </a-modal>
 
     <a-modal
       v-model:open="modalOpen"

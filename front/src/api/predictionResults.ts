@@ -34,24 +34,34 @@ export type PredictionGenerateRequest = {
   patientId: number
 }
 
-export function predictionResultPageApi(params: { page: number; size: number; patientId?: number | null }) {
+export function predictionResultPageApi(params: {
+  page: number
+  size: number
+  patientId?: number | null
+  startTime?: string | null
+  endTime?: string | null
+}) {
   return request<IPage<PredictionResultDto>>(
     http.get<ApiResponse<IPage<PredictionResultDto>>>('/api/prediction-results', {
       params: {
         page: params.page,
         size: params.size,
         patientId: params.patientId ?? undefined,
+        startTime: params.startTime ?? undefined,
+        endTime: params.endTime ?? undefined,
       },
     }),
   )
 }
 
-export function predictionResultMineApi(params: { page: number; size: number }) {
+export function predictionResultMineApi(params: { page: number; size: number; startTime?: string | null; endTime?: string | null }) {
   return request<IPage<PredictionResultDto>>(
     http.get<ApiResponse<IPage<PredictionResultDto>>>('/api/prediction-results/mine', {
       params: {
         page: params.page,
         size: params.size,
+        startTime: params.startTime ?? undefined,
+        endTime: params.endTime ?? undefined,
       },
     }),
   )

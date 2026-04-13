@@ -6,9 +6,10 @@ import { useAuthStore } from '../stores/auth'
 import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
 import {
   physicalExamCreateApi,
+  physicalExamDetailApi,
   physicalExamDeleteApi,
   physicalExamMineApi,
-  physicalExamPageApi,
+  physicalExamPageApi2,
   physicalExamUpdateApi,
   type PhysicalExamCreateRequest,
   type PhysicalExamDto,
@@ -29,11 +30,16 @@ const patientSearching = ref(false)
 
 const query = reactive({
   patientId: null as number | null,
+  timeRange: null as [Dayjs, Dayjs] | null,
 })
 
 const modalOpen = ref(false)
 const modalLoading = ref(false)
 const editingId = ref<number | null>(null)
+
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detail = ref<PhysicalExamDto | null>(null)
 
 const form = reactive({
   patientId: null as number | null,
@@ -109,6 +115,7 @@ function onSearch() {
 
 function onReset() {
   query.patientId = null
+  query.timeRange = null
   page.value = 1
   load()
 }
@@ -155,15 +162,21 @@ function openEdit(r: PhysicalExamDto) {
 async function load() {
   loading.value = true
   try {
+    const startTime = query.timeRange ? query.timeRange[0].format('YYYY-MM-DDTHH:mm:ss') : null
+    const endTime = query.timeRange ? query.timeRange[1].format('YYYY-MM-DDTHH:mm:ss') : null
     const data = isPatient.value
       ? await physicalExamMineApi({
           page: page.value - 1,
           size: pageSize.value,
+          startTime,
+          endTime,
         })
-      : await physicalExamPageApi({
+      : await physicalExamPageApi2({
           page: page.value - 1,
           size: pageSize.value,
           patientId: query.patientId,
+          startTime,
+          endTime,
         })
     rows.value = data.records
     total.value = data.total
@@ -185,6 +198,16 @@ function patientRender({ record }: { record: PhysicalExamDto }) {
 
 function examTimeRender({ record }: { record: PhysicalExamDto }) {
   return record.examTime || ''
+}
+
+async function openDetail(r: PhysicalExamDto) {
+  detailOpen.value = true
+  detailLoading.value = true
+  try {
+    detail.value = await physicalExamDetailApi(r.id)
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function submit() {
@@ -284,6 +307,9 @@ onMounted(load)
           </a-select-option>
         </a-select>
       </a-form-item>
+      <a-form-item label="体检时间">
+        <a-range-picker v-model:value="query.timeRange" show-time />
+      </a-form-item>
       <a-form-item>
         <a-button type="primary" :loading="loading" @click="onSearch">查询</a-button>
       </a-form-item>
@@ -320,15 +346,37 @@ onMounted(load)
       <a-table-column title="身高" data-index="height" width="90" />
       <a-table-column title="体重" data-index="weight" width="90" />
       <a-table-column title="心率" data-index="heartRate" width="90" />
-      <a-table-column v-if="!isPatient" title="操作" width="180" fixed="right">
+      <a-table-column title="操作" width="220" fixed="right">
         <template #default="{ record }">
           <a-space>
+            <a-button type="link" @click="() => openDetail(record)">详情</a-button>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
             <a-button type="link" danger @click="() => confirmDelete(record)">删除</a-button>
           </a-space>
         </template>
       </a-table-column>
     </a-table>
+
+    <a-modal v-model:open="detailOpen" title="体检详情" :footer="null" width="820px">
+      <a-spin :spinning="detailLoading">
+        <a-descriptions v-if="detail" bordered :column="2">
+          <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
+          <a-descriptions-item label="patientId">{{ detail.patientId }}</a-descriptions-item>
+          <a-descriptions-item label="体检时间">{{ detail.examTime }}</a-descriptions-item>
+          <a-descriptions-item label="收缩压">{{ detail.systolicBp }}</a-descriptions-item>
+          <a-descriptions-item label="舒张压">{{ detail.diastolicBp }}</a-descriptions-item>
+          <a-descriptions-item label="BMI">{{ detail.bmi }}</a-descriptions-item>
+          <a-descriptions-item label="胆固醇">{{ detail.cholesterol }}</a-descriptions-item>
+          <a-descriptions-item label="空腹血糖">{{ detail.fastingBloodSugar }}</a-descriptions-item>
+          <a-descriptions-item label="身高">{{ detail.height }}</a-descriptions-item>
+          <a-descriptions-item label="体重">{{ detail.weight }}</a-descriptions-item>
+          <a-descriptions-item label="心率">{{ detail.heartRate ?? '-' }}</a-descriptions-item>
+          <a-descriptions-item label="肝功能">{{ detail.liverFunction ?? '-' }}</a-descriptions-item>
+          <a-descriptions-item label="创建时间">{{ detail.createdAt || '-' }}</a-descriptions-item>
+          <a-descriptions-item label="更新时间">{{ detail.updatedAt || '-' }}</a-descriptions-item>
+        </a-descriptions>
+      </a-spin>
+    </a-modal>
 
     <a-modal
       v-model:open="modalOpen"

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
+import { type Dayjs } from 'dayjs'
 import { patientDetailApi, patientPageApi, type PatientDto } from '../api/patients'
 import {
   healthRecordCreateApi,
   healthRecordDeleteApi,
+  healthRecordDetailApi,
   healthRecordPageApi,
   healthRecordUpdateApi,
   type HealthRecordCreateRequest,
@@ -25,7 +27,12 @@ const patientSearching = ref(false)
 const query = reactive({
   patientId: null as number | null,
   keyword: '',
+  timeRange: null as [Dayjs, Dayjs] | null,
 })
+
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detail = ref<HealthRecordDto | null>(null)
 
 const modalOpen = ref(false)
 const modalLoading = ref(false)
@@ -96,6 +103,7 @@ function onSearch() {
 function onReset() {
   query.patientId = null
   query.keyword = ''
+  query.timeRange = null
   page.value = 1
   load()
 }
@@ -131,11 +139,15 @@ function openEdit(r: HealthRecordDto) {
 async function load() {
   loading.value = true
   try {
+    const startTime = query.timeRange ? query.timeRange[0].format('YYYY-MM-DDTHH:mm:ss') : null
+    const endTime = query.timeRange ? query.timeRange[1].format('YYYY-MM-DDTHH:mm:ss') : null
     const data = await healthRecordPageApi({
       page: page.value - 1,
       size: pageSize.value,
       patientId: query.patientId,
       keyword: query.keyword || null,
+      startTime,
+      endTime,
     })
     rows.value = data.records
     total.value = data.total
@@ -181,6 +193,17 @@ function comorbidityRender({ record }: { record: HealthRecordDto }) {
 
 function drugHistoryRender({ record }: { record: HealthRecordDto }) {
   return truncateText(record.drugHistory, 40)
+}
+
+async function openDetail(r: HealthRecordDto) {
+  detailOpen.value = true
+  detailLoading.value = true
+  detail.value = null
+  try {
+    detail.value = await healthRecordDetailApi(r.id)
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function submit() {
@@ -278,6 +301,9 @@ onMounted(load)
       <a-form-item label="关键词">
         <a-input v-model:value="query.keyword" style="width: 240px" placeholder="合并症关键字" />
       </a-form-item>
+      <a-form-item label="时间范围">
+        <a-range-picker v-model:value="query.timeRange" show-time />
+      </a-form-item>
       <a-form-item>
         <a-button type="primary" :loading="loading" @click="onSearch">查询</a-button>
       </a-form-item>
@@ -319,15 +345,33 @@ onMounted(load)
       <a-table-column title="用药史" :customRender="drugHistoryRender" />
       <a-table-column title="创建时间" data-index="createdAt" width="180" />
       <a-table-column title="更新时间" data-index="updatedAt" width="180" />
-      <a-table-column title="操作" width="180">
+      <a-table-column title="操作" width="220">
         <template #default="{ record }">
           <a-space>
+            <a-button type="link" @click="() => openDetail(record)">详情</a-button>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
             <a-button type="link" danger @click="() => confirmDelete(record)">删除</a-button>
           </a-space>
         </template>
       </a-table-column>
     </a-table>
+
+    <a-modal v-model:open="detailOpen" title="健康档案详情" :footer="null" width="860px">
+      <a-spin :spinning="detailLoading">
+        <a-descriptions v-if="detail" bordered :column="2">
+          <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
+          <a-descriptions-item label="患者">{{ patientLabelMap[detail.patientId] || detail.patientId }}</a-descriptions-item>
+          <a-descriptions-item label="家族高血压病史">{{ familyHypertensionText(detail.familyHypertension) }}</a-descriptions-item>
+          <a-descriptions-item label="既往高血压病史">{{ pastHypertensionText(detail.pastHypertension) }}</a-descriptions-item>
+          <a-descriptions-item label="合并症" :span="2">{{ detail.comorbidity }}</a-descriptions-item>
+          <a-descriptions-item label="既往用药史" :span="2">{{ detail.drugHistory }}</a-descriptions-item>
+          <a-descriptions-item label="既往诊疗记录" :span="2">{{ detail.treatmentRecord || '' }}</a-descriptions-item>
+          <a-descriptions-item label="过敏史" :span="2">{{ detail.allergyHistory || '' }}</a-descriptions-item>
+          <a-descriptions-item label="创建时间">{{ detail.createdAt || '' }}</a-descriptions-item>
+          <a-descriptions-item label="更新时间">{{ detail.updatedAt || '' }}</a-descriptions-item>
+        </a-descriptions>
+      </a-spin>
+    </a-modal>
 
     <a-modal
       v-model:open="modalOpen"

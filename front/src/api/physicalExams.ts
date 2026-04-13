@@ -57,12 +57,34 @@ export function physicalExamPageApi(params: { page: number; size: number; patien
   )
 }
 
-export function physicalExamMineApi(params: { page: number; size: number }) {
+export function physicalExamPageApi2(params: {
+  page: number
+  size: number
+  patientId?: number | null
+  startTime?: string | null
+  endTime?: string | null
+}) {
+  return request<IPage<PhysicalExamDto>>(
+    http.get<ApiResponse<IPage<PhysicalExamDto>>>('/api/physical-exams', {
+      params: {
+        page: params.page,
+        size: params.size,
+        patientId: params.patientId ?? undefined,
+        startTime: params.startTime ?? undefined,
+        endTime: params.endTime ?? undefined,
+      },
+    }),
+  )
+}
+
+export function physicalExamMineApi(params: { page: number; size: number; startTime?: string | null; endTime?: string | null }) {
   return request<IPage<PhysicalExamDto>>(
     http.get<ApiResponse<IPage<PhysicalExamDto>>>('/api/physical-exams/mine', {
       params: {
         page: params.page,
         size: params.size,
+        startTime: params.startTime ?? undefined,
+        endTime: params.endTime ?? undefined,
       },
     }),
   )

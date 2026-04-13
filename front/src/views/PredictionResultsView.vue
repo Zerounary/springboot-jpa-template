@@ -9,6 +9,7 @@ import {
   predictionResultCreateApi,
   predictionResultDeleteApi,
   predictionResultGenerateApi,
+  predictionResultDetailApi,
   predictionResultMineApi,
   predictionResultPageApi,
   predictionResultUpdateApi,
@@ -33,11 +34,16 @@ const patientSearching = ref(false)
 
 const query = reactive({
   patientId: null as number | null,
+  timeRange: null as [Dayjs, Dayjs] | null,
 })
 
 const modalOpen = ref(false)
 const modalLoading = ref(false)
 const editingId = ref<number | null>(null)
+
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detail = ref<PredictionResultDto | null>(null)
 
 const form = reactive({
   patientId: null as number | null,
@@ -108,6 +114,7 @@ function onSearch() {
 
 function onReset() {
   query.patientId = null
+  query.timeRange = null
   page.value = 1
   load()
 }
@@ -159,15 +166,21 @@ function openEdit(r: PredictionResultDto) {
 async function load() {
   loading.value = true
   try {
+    const startTime = query.timeRange ? query.timeRange[0].format('YYYY-MM-DDTHH:mm:ss') : null
+    const endTime = query.timeRange ? query.timeRange[1].format('YYYY-MM-DDTHH:mm:ss') : null
     const data = isPatient.value
       ? await predictionResultMineApi({
           page: page.value - 1,
           size: pageSize.value,
+          startTime,
+          endTime,
         })
       : await predictionResultPageApi({
           page: page.value - 1,
           size: pageSize.value,
           patientId: query.patientId,
+          startTime,
+          endTime,
         })
     rows.value = data.records
     total.value = data.total
@@ -212,6 +225,16 @@ function warningRender({ record }: { record: PredictionResultDto }) {
 
 function coreRiskRender({ record }: { record: PredictionResultDto }) {
   return truncateText(record.coreRiskFactors, 60)
+}
+
+async function openDetail(r: PredictionResultDto) {
+  detailOpen.value = true
+  detailLoading.value = true
+  try {
+    detail.value = await predictionResultDetailApi(r.id)
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 function probRender({ record }: { record: PredictionResultDto }) {
@@ -329,6 +352,9 @@ onMounted(load)
           </a-select-option>
         </a-select>
       </a-form-item>
+      <a-form-item label="预测时间">
+        <a-range-picker v-model:value="query.timeRange" show-time />
+      </a-form-item>
       <a-form-item>
         <a-button type="primary" :loading="loading" @click="onSearch">查询</a-button>
       </a-form-item>
@@ -365,9 +391,10 @@ onMounted(load)
       <a-table-column title="标签" :customRender="labelRender" width="100" />
       <a-table-column title="预警状态" :customRender="warningRender" width="120" />
       <a-table-column title="核心风险因素" :customRender="coreRiskRender" />
-      <a-table-column v-if="!isPatient" title="操作" width="180" fixed="right">
+      <a-table-column title="操作" width="220" fixed="right">
         <template #default="{ record }">
           <a-space>
+            <a-button type="link" @click="() => openDetail(record)">详情</a-button>
             <a-button v-if="canManage" type="link" @click="() => toGuidanceCreate(record)">写健康指导</a-button>
             <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
             <a-button type="link" danger @click="() => confirmDelete(record)">删除</a-button>
@@ -375,6 +402,22 @@ onMounted(load)
         </template>
       </a-table-column>
     </a-table>
+
+    <a-modal v-model:open="detailOpen" title="预测详情" :footer="null" width="820px">
+      <a-spin :spinning="detailLoading">
+        <a-descriptions v-if="detail" bordered :column="2">
+          <a-descriptions-item label="ID">{{ detail.id }}</a-descriptions-item>
+          <a-descriptions-item label="patientId">{{ detail.patientId }}</a-descriptions-item>
+          <a-descriptions-item label="预测时间">{{ detail.predictionTime }}</a-descriptions-item>
+          <a-descriptions-item label="概率">{{ detail.predictionProb }}</a-descriptions-item>
+          <a-descriptions-item label="标签">{{ labelText(detail.predictionLabel) }}</a-descriptions-item>
+          <a-descriptions-item label="预警状态">{{ warningText(detail.warningStatus) }}</a-descriptions-item>
+          <a-descriptions-item label="核心风险因素" :span="2">{{ detail.coreRiskFactors }}</a-descriptions-item>
+          <a-descriptions-item label="创建时间">{{ detail.createdAt || '-' }}</a-descriptions-item>
+          <a-descriptions-item label="更新时间">{{ detail.updatedAt || '-' }}</a-descriptions-item>
+        </a-descriptions>
+      </a-spin>
+    </a-modal>
 
     <a-modal
       v-model:open="modalOpen"

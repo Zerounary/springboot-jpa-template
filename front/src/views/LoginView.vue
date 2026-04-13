@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '../stores/auth'
 import { registerApi, type UserRole } from '../api/auth'
+import heroBg from '../assets/hero.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -68,19 +69,27 @@ async function onRegister() {
 </script>
 
 <template>
-  <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px">
-    <a-card title="登录" style="width: 420px">
-      <a-form layout="vertical" @submit.prevent="onSubmit">
-        <a-form-item label="用户名">
-          <a-input v-model:value="form.username" autocomplete="username" />
-        </a-form-item>
-        <a-form-item label="密码">
-          <a-input-password v-model:value="form.password" autocomplete="current-password" />
-        </a-form-item>
-        <a-button type="primary" block :loading="loading" @click="onSubmit">登录</a-button>
-        <a-button style="margin-top: 8px" block @click="registerOpen = true">注册</a-button>
-      </a-form>
-    </a-card>
+  <div class="login-page" :style="{ backgroundImage: `url(${heroBg})` }">
+    <div class="login-mask" />
+    <div class="login-container">
+      <div class="login-header">
+        <a-typography-title :level="3" style="margin: 0">社区医院信息平台登录</a-typography-title>
+        <a-typography-text type="secondary">请使用账号密码登录系统</a-typography-text>
+      </div>
+
+      <a-card class="login-card" :bordered="false">
+        <a-form layout="vertical" @submit.prevent="onSubmit">
+          <a-form-item label="用户名">
+            <a-input v-model:value="form.username" autocomplete="username" size="large" />
+          </a-form-item>
+          <a-form-item label="密码">
+            <a-input-password v-model:value="form.password" autocomplete="current-password" size="large" />
+          </a-form-item>
+          <a-button type="primary" block size="large" :loading="loading" @click="onSubmit">登录</a-button>
+          <a-button style="margin-top: 10px" block size="large" @click="registerOpen = true">注册</a-button>
+        </a-form>
+      </a-card>
+    </div>
 
     <a-modal v-model:open="registerOpen" title="注册" :confirm-loading="registerLoading" @ok="onRegister">
       <a-form layout="vertical">
@@ -95,6 +104,7 @@ async function onRegister() {
         </a-form-item>
         <a-form-item label="注册角色">
           <a-select v-model:value="registerForm.role">
+            <a-select-option value="ADMIN">管理员</a-select-option>
             <a-select-option value="PATIENT">患者</a-select-option>
             <a-select-option value="DOCTOR">医生</a-select-option>
           </a-select>
@@ -103,3 +113,40 @@ async function onRegister() {
     </a-modal>
   </div>
 </template>
+
+<style scoped>
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.login-mask {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.78), rgba(2, 132, 199, 0.35));
+  backdrop-filter: blur(1px);
+}
+
+.login-container {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  z-index: 1;
+}
+
+.login-header {
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.login-card {
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+}
+</style>

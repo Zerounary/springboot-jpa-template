@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
+import { userUpdateMeApi } from '../api/users'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -14,6 +16,14 @@ const isPatient = computed(() => role.value === 'PATIENT')
 const showOrganizations = computed(() => isAdmin.value)
 const showFusion = computed(() => isAdmin.value)
 const showSpark = computed(() => isAdmin.value)
+const passwordModalOpen = ref(false)
+const passwordSaving = ref(false)
+const passwordForm = reactive({
+  password: '',
+  confirmPassword: '',
+})
+const displayName = computed(() => auth.user?.nickname || auth.user?.username || '用户')
+const avatarText = computed(() => displayName.value.slice(0, 1).toUpperCase())
 
 const selectedKeys = computed(() => {
   const n = route.name
@@ -22,6 +32,53 @@ const selectedKeys = computed(() => {
 
 function onMenuClick(e: { key: string }) {
   router.push({ name: e.key })
+}
+
+function resetPasswordForm() {
+  passwordForm.password = ''
+  passwordForm.confirmPassword = ''
+}
+
+function openChangePassword() {
+  resetPasswordForm()
+  passwordModalOpen.value = true
+}
+
+async function submitPasswordChange() {
+  if (!passwordForm.password) {
+    message.warning('请输入新密码')
+    return
+  }
+  if (passwordForm.password.length < 6) {
+    message.warning('密码长度至少 6 位')
+    return
+  }
+  if (passwordForm.password !== passwordForm.confirmPassword) {
+    message.warning('两次输入的密码不一致')
+    return
+  }
+
+  passwordSaving.value = true
+  try {
+    const user = await userUpdateMeApi({ password: passwordForm.password })
+    auth.user = user
+    passwordModalOpen.value = false
+    resetPasswordForm()
+    message.success('密码修改成功，请使用新密码重新登录')
+    logout()
+  } finally {
+    passwordSaving.value = false
+  }
+}
+
+function onUserMenuClick(e: { key: string }) {
+  if (e.key === 'change-password') {
+    openChangePassword()
+    return
+  }
+  if (e.key === 'logout') {
+    logout()
+  }
 }
 
 function logout() {
@@ -58,13 +115,40 @@ function logout() {
         <a-tag :color="isAdmin ? 'red' : isDoctor ? 'blue' : 'green'">
           {{ role }}
         </a-tag>
-        <a-typography-text v-if="auth.user">{{ auth.user.nickname || auth.user.username }}</a-typography-text>
-        <a-button type="link" @click="logout">退出登录</a-button>
+        <a-dropdown>
+          <a-space style="cursor: pointer">
+            <a-avatar style="background-color: #1677ff">{{ avatarText }}</a-avatar>
+            <a-typography-text>{{ displayName }}</a-typography-text>
+          </a-space>
+          <template #overlay>
+            <a-menu @click="onUserMenuClick">
+              <a-menu-item key="change-password">修改密码</a-menu-item>
+              <a-menu-item key="logout">退出登录</a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
       </a-layout-header>
 
       <a-layout-content style="margin: 16px">
         <router-view />
       </a-layout-content>
+
+      <a-modal
+        v-model:open="passwordModalOpen"
+        title="修改密码"
+        :confirm-loading="passwordSaving"
+        @ok="submitPasswordChange"
+        @cancel="() => { passwordModalOpen = false }"
+      >
+        <a-form layout="vertical">
+          <a-form-item label="新密码" required>
+            <a-input-password v-model:value="passwordForm.password" placeholder="请输入新密码" />
+          </a-form-item>
+          <a-form-item label="确认密码" required>
+            <a-input-password v-model:value="passwordForm.confirmPassword" placeholder="请再次输入新密码" />
+          </a-form-item>
+        </a-form>
+      </a-modal>
     </a-layout>
   </a-layout>
 </template>

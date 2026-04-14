@@ -21,9 +21,9 @@
 }
 
 .patient-app {
-  max-width: 480px;
   min-height: 100vh;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
   background: var(--patient-bg);
 }
 
@@ -31,6 +31,8 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .patient-topbar {
@@ -290,7 +292,7 @@
 
 .patient-auth-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 400px;
   padding: 24px 18px;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -405,6 +407,86 @@
 
 .patient-app .el-dialog__header {
   padding-bottom: 0 !important;
+}
+
+@media (min-width: 768px) {
+  .patient-content {
+    padding: 24px 24px 92px;
+    width: 100%;
+  }
+
+  .patient-stats-grid,
+  .patient-quick-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .patient-page-stack {
+    display: grid;
+    gap: 20px;
+  }
+
+  .patient-hero-card,
+  .patient-panel-card,
+  .patient-profile-card {
+    padding: 24px;
+  }
+
+  .patient-doctor-card,
+  .patient-reg-card,
+  .patient-hm-card,
+  .patient-rec-card {
+    padding: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .patient-content {
+    padding: 32px 32px 92px;
+    width: 100%;
+  }
+
+  .patient-stats-grid,
+  .patient-quick-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+
+  .patient-app .el-form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .patient-app .el-form-item {
+    margin-bottom: 0 !important;
+  }
+
+  .patient-app .el-form-item:nth-child(3n) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1440px) {
+  .patient-content {
+    padding: 40px 40px 92px;
+    width: 100%;
+  }
+
+  .patient-stats-grid,
+  .patient-quick-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .patient-app .el-form {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .patient-app .el-form-item:nth-child(3n) {
+    grid-column: auto;
+  }
+
+  .patient-app .el-form-item:nth-child(4n) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 380px) {

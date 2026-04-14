@@ -1,0 +1,423 @@
+:root {
+  --patient-bg: linear-gradient(180deg, #f2f7ff 0%, #f7fafc 28%, #f5f7fa 100%);
+  --patient-surface: rgba(255, 255, 255, 0.92);
+  --patient-surface-strong: #ffffff;
+  --patient-primary: #2f7cff;
+  --patient-primary-soft: rgba(47, 124, 255, 0.12);
+  --patient-primary-border: rgba(47, 124, 255, 0.2);
+  --patient-text: #1f2937;
+  --patient-text-secondary: #6b7280;
+  --patient-border: rgba(148, 163, 184, 0.2);
+  --patient-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --patient-radius-lg: 22px;
+  --patient-radius-md: 16px;
+  --patient-radius-sm: 12px;
+}
+
+.patient-app,
+.patient-auth-page {
+  color: var(--patient-text);
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+.patient-app {
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--patient-bg);
+}
+
+.patient-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.patient-topbar__title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--patient-text);
+}
+
+.patient-topbar__subtitle {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--patient-text-secondary);
+}
+
+.patient-topbar__user {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--patient-primary-soft);
+  color: var(--patient-primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.patient-content {
+  flex: 1;
+  padding: 16px 16px 92px;
+}
+
+.patient-tabbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.patient-tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 52px;
+  border-radius: 16px;
+  color: var(--patient-text-secondary);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.patient-tabbar__item.is-active {
+  background: var(--patient-primary-soft);
+  color: var(--patient-primary);
+  font-weight: 700;
+}
+
+.patient-tabbar__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.patient-page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.patient-hero-card,
+.patient-panel-card,
+.patient-doctor-card,
+.patient-reg-card,
+.patient-hm-card,
+.patient-rec-card,
+.patient-profile-card {
+  background: var(--patient-surface);
+  border: 1px solid var(--patient-border);
+  border-radius: var(--patient-radius-lg);
+  box-shadow: var(--patient-shadow);
+}
+
+.patient-hero-card,
+.patient-panel-card,
+.patient-profile-card {
+  padding: 18px;
+}
+
+.patient-hero-card {
+  background: linear-gradient(135deg, #2f7cff 0%, #65a6ff 100%);
+  color: #ffffff;
+}
+
+.patient-hero-card__eyebrow {
+  font-size: 12px;
+  opacity: 0.88;
+}
+
+.patient-hero-card__title {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.patient-hero-card__desc {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.92;
+}
+
+.patient-section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.patient-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--patient-text);
+}
+
+.patient-section-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--patient-text-secondary);
+}
+
+.patient-stats-grid,
+.patient-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.patient-stats-item,
+.patient-quick-item {
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--patient-surface-strong);
+  border: 1px solid var(--patient-border);
+}
+
+.patient-stats-item__label,
+.patient-quick-item__label {
+  font-size: 12px;
+  color: var(--patient-text-secondary);
+}
+
+.patient-stats-item__value {
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--patient-text);
+}
+
+.patient-quick-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.patient-quick-item__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--patient-text);
+}
+
+.patient-quick-item__desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--patient-text-secondary);
+}
+
+.patient-list-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.patient-title,
+.patient-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--patient-text);
+}
+
+.patient-fee,
+.patient-status,
+.patient-accent {
+  color: var(--patient-primary);
+  font-weight: 700;
+}
+
+.patient-meta,
+.patient-empty-text,
+.patient-helper-text,
+.patient-muted {
+  color: var(--patient-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.patient-empty-text {
+  padding: 18px 0;
+  text-align: center;
+}
+
+.patient-doctor-card,
+.patient-reg-card,
+.patient-hm-card,
+.patient-rec-card {
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.patient-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.patient-auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: var(--patient-bg);
+}
+
+.patient-auth-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 18px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 26px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+}
+
+.patient-auth-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--patient-text);
+}
+
+.patient-auth-subtitle {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--patient-text-secondary);
+}
+
+.patient-profile-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.patient-profile-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--patient-text);
+}
+
+.patient-profile-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  font-size: 14px;
+}
+
+.patient-profile-line:last-child {
+  border-bottom: none;
+}
+
+.patient-profile-line__label {
+  color: var(--patient-text-secondary);
+}
+
+.patient-profile-line__value {
+  color: var(--patient-text);
+  font-weight: 600;
+  text-align: right;
+}
+
+.patient-dialog-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.patient-dialog-key {
+  width: 70px;
+  color: #909399;
+  flex: 0 0 auto;
+}
+
+.patient-dialog-value {
+  flex: 1;
+  color: #303133;
+}
+
+.patient-app .el-button,
+.patient-auth-page .el-button {
+  min-height: 42px;
+  border-radius: 14px !important;
+  font-weight: 600;
+}
+
+.patient-app .el-input__wrapper,
+.patient-app .el-select__wrapper,
+.patient-app .el-textarea__inner,
+.patient-app .el-input-number,
+.patient-app .el-date-editor.el-input__wrapper,
+.patient-auth-page .el-input__wrapper,
+.patient-auth-page .el-select__wrapper,
+.patient-auth-page .el-textarea__inner,
+.patient-auth-page .el-input-number,
+.patient-auth-page .el-date-editor.el-input__wrapper {
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  border: 1px solid var(--patient-border) !important;
+  background-color: var(--patient-surface-strong) !important;
+}
+
+.patient-app .el-form-item,
+.patient-auth-page .el-form-item {
+  margin-bottom: 16px !important;
+}
+
+.patient-app .el-form-item__label,
+.patient-auth-page .el-form-item__label {
+  color: var(--patient-text) !important;
+  font-weight: 600;
+}
+
+.patient-app .el-dialog {
+  border-radius: 24px !important;
+  margin-top: 8vh !important;
+}
+
+.patient-app .el-dialog__header {
+  padding-bottom: 0 !important;
+}
+
+@media (max-width: 380px) {
+  .patient-topbar,
+  .patient-content,
+  .patient-tabbar,
+  .patient-auth-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .patient-stats-grid,
+  .patient-quick-grid {
+    grid-template-columns: 1fr;
+  }
+}

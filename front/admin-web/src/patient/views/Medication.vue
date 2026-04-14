@@ -1,15 +1,10 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import * as echarts from 'echarts'
-import dayjs from 'dayjs'
-import 'dayjs/locale/zh-cn'
 import http from '../../utils/http'
 import { formatDate, formatDateTime } from '../utils/format'
 import { useAuthStore } from '../../stores/auth'
-
-dayjs.locale('zh-cn')
 
 const auth = useAuthStore()
 
@@ -472,16 +467,14 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <el-config-provider :locale="zhCn">
-          <el-calendar v-model="calendarDate">
-            <template #date-cell="{ data }">
-              <div class="patient-calendar-cell" :class="{ 'is-active': calendarCount(data.date) > 0 }">
-                <div>{{ data.day.split('-').slice(2).join('') }}</div>
-                <div v-if="calendarCount(data.date) > 0" class="patient-calendar-cell__count">{{ calendarCount(data.date) }} 次</div>
-              </div>
-            </template>
-          </el-calendar>
-        </el-config-provider>
+        <el-calendar v-model="calendarDate">
+          <template #date-cell="{ data }">
+            <div class="patient-calendar-cell" :class="{ 'is-active': calendarCount(data.date) > 0 }">
+              <div>{{ data.day.split('-').slice(2).join('') }}</div>
+              <div v-if="calendarCount(data.date) > 0" class="patient-calendar-cell__count">{{ calendarCount(data.date) }} {{ $t('medication.times') || 'times' }}</div>
+            </div>
+          </template>
+        </el-calendar>
       </section>
 
       <section class="patient-panel-card">

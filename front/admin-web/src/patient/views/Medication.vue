@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { AlarmClock, DataAnalysis, FirstAidKit, Opportunity } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import http from '../../utils/http'
@@ -242,6 +243,13 @@ const adherenceStats = computed(() => {
   return { expectedCount, takenCount, missedCount, rate }
 })
 
+const overviewCards = computed(() => [
+  { label: '今日待服次数', value: todayTasks.value.length, desc: '按今日提醒时间生成任务', icon: FirstAidKit },
+  { label: '近期提醒', value: upcomingReminders.value.length, desc: '未来 6 小时内待提醒', icon: AlarmClock },
+  { label: '30 天计划', value: adherenceStats.value.expectedCount, desc: '依从性统计基准次数', icon: DataAnalysis },
+  { label: '依从率', value: `${adherenceStats.value.rate}%`, desc: '近 30 天执行完成情况', icon: Opportunity },
+])
+
 function ensureChart() {
   if (!chartEl.value) return null
   if (!chart) {
@@ -386,22 +394,16 @@ onUnmounted(() => {
           <div class="patient-section-subtitle">今日计划、提醒与 30 天依从性一眼可见</div>
         </div>
       </div>
-      <div class="patient-stats-grid">
-        <div class="patient-stats-item">
-          <div class="patient-stats-item__label">今日待服次数</div>
-          <div class="patient-stats-item__value">{{ todayTasks.length }}</div>
-        </div>
-        <div class="patient-stats-item">
-          <div class="patient-stats-item__label">近期提醒</div>
-          <div class="patient-stats-item__value">{{ upcomingReminders.length }}</div>
-        </div>
-        <div class="patient-stats-item">
-          <div class="patient-stats-item__label">30 天计划次数</div>
-          <div class="patient-stats-item__value">{{ adherenceStats.expectedCount }}</div>
-        </div>
-        <div class="patient-stats-item">
-          <div class="patient-stats-item__label">依从率</div>
-          <div class="patient-stats-item__value">{{ adherenceStats.rate }}%</div>
+      <div class="patient-kpi-grid">
+        <div v-for="card in overviewCards" :key="card.label" class="patient-kpi-card">
+          <div class="patient-kpi-card__icon">
+            <el-icon><component :is="card.icon" /></el-icon>
+          </div>
+          <div class="patient-kpi-card__body">
+            <div class="patient-kpi-card__label">{{ card.label }}</div>
+            <div class="patient-kpi-card__value">{{ card.value }}</div>
+            <div class="patient-kpi-card__desc">{{ card.desc }}</div>
+          </div>
         </div>
       </div>
     </section>
@@ -471,7 +473,7 @@ onUnmounted(() => {
           <template #date-cell="{ data }">
             <div class="patient-calendar-cell" :class="{ 'is-active': calendarCount(data.date) > 0 }">
               <div>{{ data.day.split('-').slice(2).join('') }}</div>
-              <div v-if="calendarCount(data.date) > 0" class="patient-calendar-cell__count">{{ calendarCount(data.date) }} {{ $t('medication.times') || 'times' }}</div>
+              <div v-if="calendarCount(data.date) > 0" class="patient-calendar-cell__count">{{ calendarCount(data.date) }} 次</div>
             </div>
           </template>
         </el-calendar>

@@ -1,6 +1,8 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { DataAnalysis, Document, Files, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
 import http from '../../utils/http'
 import { formatDateTime } from '../utils/format'
 
@@ -15,6 +17,10 @@ const page = ref(0)
 const size = ref(10)
 const total = ref(0)
 const list = ref([])
+
+const chartEl = ref(null)
+let chart = null
+let resizeHandler = null
 
 const dialogVisible = ref(false)
 const detail = ref(null)
@@ -32,11 +38,61 @@ async function loadList() {
     })
     list.value = res.records || []
     total.value = Number(res.total || 0)
+    await nextTick()
+    renderChart()
   } catch (e) {
     ElMessage.error(e?.message || '加载失败')
   } finally {
     loading.value = false
   }
+}
+
+const overviewCards = computed(() => {
+  const completed = list.value.filter((item) => item.recordStatus === 1).length
+  const draft = list.value.filter((item) => item.recordStatus === 0).length
+  const distinctDoctors = new Set(list.value.map((item) => item.doctorId).filter(Boolean)).size
+  return [
+    { label: '病历总数', value: total.value, desc: '当前筛选条件下的病历数量', icon: Files },
+    { label: '已完成', value: completed, desc: '可直接查看完整诊疗结论', icon: Document },
+    { label: '草稿病历', value: draft, desc: '仍处于待完善状态', icon: DataAnalysis },
+    { label: '接诊医生', value: distinctDoctors, desc: '涉及的历史接诊医生数', icon: User },
+  ]
+})
+
+function ensureChart() {
+  if (!chartEl.value) return null
+  if (!chart) {
+    chart = echarts.init(chartEl.value)
+  }
+  return chart
+}
+
+function renderChart() {
+  const instance = ensureChart()
+  if (!instance) return
+  const diagnosisMap = new Map()
+  for (const item of list.value) {
+    const key = item.diagnosis || '未填写诊断'
+    diagnosisMap.set(key, (diagnosisMap.get(key) || 0) + 1)
+  }
+  const topDiagnosis = [...diagnosisMap.entries()].slice(0, 6)
+  instance.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 18, right: 12, top: 18, bottom: 18, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: topDiagnosis.map(([name]) => name),
+      axisLabel: { interval: 0, rotate: 18 },
+    },
+    yAxis: { type: 'value' },
+    series: [{
+      name: '病历数',
+      type: 'bar',
+      barWidth: 22,
+      itemStyle: { borderRadius: [8, 8, 0, 0], color: '#2f7cff' },
+      data: topDiagnosis.map(([, value]) => value),
+    }],
+  })
 }
 
 async function onSearch() {
@@ -66,6 +122,15 @@ function statusLabel(v) {
 
 onMounted(async () => {
   await loadList()
+  resizeHandler = () => chart?.resize()
+  window.addEventListener('resize', resizeHandler)
+})
+
+onUnmounted(() => {
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+  }
+  chart?.dispose()
 })
 </script>
 
@@ -78,6 +143,19 @@ onMounted(async () => {
           <div class="patient-section-subtitle">按诊断、主诉和状态快速筛选个人病历</div>
         </div>
         <div class="patient-accent">共 {{ total }} 条</div>
+      </div>
+
+      <div class="patient-kpi-grid" style="margin-bottom: 12px">
+        <div v-for="card in overviewCards" :key="card.label" class="patient-kpi-card">
+          <div class="patient-kpi-card__icon">
+            <el-icon><component :is="card.icon" /></el-icon>
+          </div>
+          <div class="patient-kpi-card__body">
+            <div class="patient-kpi-card__label">{{ card.label }}</div>
+            <div class="patient-kpi-card__value">{{ card.value }}</div>
+            <div class="patient-kpi-card__desc">{{ card.desc }}</div>
+          </div>
+        </div>
       </div>
 
       <el-form label-position="top" @submit.prevent>
@@ -104,6 +182,17 @@ onMounted(async () => {
           <div class="patient-section-title">病历列表</div>
           <div class="patient-section-subtitle">点击卡片可查看完整病历详情</div>
         </div>
+      </div>
+
+      <div class="patient-chart-card" style="margin-bottom: 12px">
+        <div class="patient-chart-card__head">
+          <div>
+            <div class="patient-chart-card__title">诊断分布柱状图</div>
+            <div class="patient-chart-card__desc">按诊断查看当前列表中最常见的病历主题</div>
+          </div>
+          <div class="patient-chart-card__meta">{{ overviewCards[1]?.value ?? 0 }} 条已完成</div>
+        </div>
+        <div ref="chartEl" class="patient-chart" />
       </div>
 
       <el-skeleton :loading="loading" animated>

@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { DataAnalysis, Histogram, Opportunity, TrendCharts } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import http from '../../utils/http'
@@ -27,6 +28,19 @@ const list = ref([])
 const chartEl = ref(null)
 let chart = null
 let resizeHandler = null
+
+const overviewCards = computed(() => {
+  const latest = list.value[0] || {}
+  const avgGlucose = list.value.length > 0
+    ? (list.value.reduce((sum, item) => sum + Number(item.bloodGlucose || 0), 0) / Math.max(list.value.filter((item) => item.bloodGlucose != null).length, 1)).toFixed(1)
+    : '0.0'
+  return [
+    { label: '健康记录', value: total.value, desc: '当前已保存的监测次数', icon: Histogram },
+    { label: '最新血压', value: `${latest.systolicPressure ?? '-'} / ${latest.diastolicPressure ?? '-'}`, desc: '最近一次血压记录', icon: TrendCharts },
+    { label: '平均血糖', value: avgGlucose, desc: '当前页监测均值', icon: DataAnalysis },
+    { label: '最新体重', value: latest.weight ?? '-', desc: '最近一次体重记录', icon: Opportunity },
+  ]
+})
 
 async function createOne() {
   loadingCreate.value = true
@@ -156,6 +170,19 @@ onUnmounted(() => {
         <div>
           <div class="patient-section-title">健康监测</div>
           <div class="patient-section-subtitle">随手记录关键体征数据，适合手机端快速录入</div>
+        </div>
+      </div>
+
+      <div class="patient-kpi-grid" style="margin-bottom: 12px">
+        <div v-for="card in overviewCards" :key="card.label" class="patient-kpi-card">
+          <div class="patient-kpi-card__icon">
+            <el-icon><component :is="card.icon" /></el-icon>
+          </div>
+          <div class="patient-kpi-card__body">
+            <div class="patient-kpi-card__label">{{ card.label }}</div>
+            <div class="patient-kpi-card__value">{{ card.value }}</div>
+            <div class="patient-kpi-card__desc">{{ card.desc }}</div>
+          </div>
         </div>
       </div>
 

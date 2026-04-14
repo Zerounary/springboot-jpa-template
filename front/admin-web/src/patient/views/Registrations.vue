@@ -1,6 +1,8 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { Calendar, DataAnalysis, Money, Tickets } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
 import http from '../../utils/http'
 import { formatDate } from '../utils/format'
 
@@ -25,6 +27,10 @@ const page = ref(0)
 const size = ref(10)
 const total = ref(0)
 const list = ref([])
+
+const chartEl = ref(null)
+let chart = null
+let resizeHandler = null
 
 const statusFilter = reactive({
   payStatus: null,
@@ -155,11 +161,56 @@ async function loadList() {
     })
     list.value = res.records || []
     total.value = Number(res.total || 0)
+    await nextTick()
+    renderChart()
   } catch (e) {
     ElMessage.error(e?.message || '加载失败')
   } finally {
     loadingList.value = false
   }
+}
+
+const overviewCards = computed(() => {
+  const unpaid = list.value.filter((item) => item.payStatus === 0).length
+  const pending = list.value.filter((item) => item.registrationStatus === 0).length
+  const visited = list.value.filter((item) => item.registrationStatus === 1).length
+  const totalFee = list.value.reduce((sum, item) => sum + Number(item.registrationFee || 0), 0)
+  return [
+    { label: '挂号总数', value: total.value, desc: '当前筛选条件下的预约记录', icon: Tickets },
+    { label: '待就诊', value: pending, desc: '仍需前往医院就诊', icon: Calendar },
+    { label: '待支付', value: unpaid, desc: '尚未完成支付的挂号', icon: Money },
+    { label: '累计费用', value: `￥${totalFee.toFixed(0)}`, desc: '当前页挂号费用汇总', icon: DataAnalysis },
+    { label: '已就诊', value: visited, desc: '已完成就诊流程', icon: DataAnalysis },
+  ]
+})
+
+function ensureChart() {
+  if (!chartEl.value) return null
+  if (!chart) {
+    chart = echarts.init(chartEl.value)
+  }
+  return chart
+}
+
+function renderChart() {
+  const instance = ensureChart()
+  if (!instance) return
+  const statusData = [
+    { name: '待就诊', value: list.value.filter((item) => item.registrationStatus === 0).length },
+    { name: '已就诊', value: list.value.filter((item) => item.registrationStatus === 1).length },
+    { name: '已取消', value: list.value.filter((item) => item.registrationStatus === 2).length },
+  ]
+  instance.setOption({
+    tooltip: { trigger: 'item' },
+    legend: { bottom: 0 },
+    series: [{
+      type: 'pie',
+      radius: ['46%', '70%'],
+      center: ['50%', '42%'],
+      itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 10 },
+      data: statusData,
+    }],
+  })
 }
 
 async function onPageChange(p) {
@@ -216,6 +267,15 @@ watch(
 onMounted(async () => {
   await loadDepartments()
   await loadList()
+  resizeHandler = () => chart?.resize()
+  window.addEventListener('resize', resizeHandler)
+})
+
+onUnmounted(() => {
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+  }
+  chart?.dispose()
 })
 </script>
 
@@ -226,6 +286,19 @@ onMounted(async () => {
         <div>
           <div class="patient-section-title">在线挂号</div>
           <div class="patient-section-subtitle">选择科室、医生和就诊时间，快速完成预约</div>
+        </div>
+      </div>
+
+      <div class="patient-kpi-grid" style="margin-bottom: 12px">
+        <div v-for="card in overviewCards.slice(0, 4)" :key="card.label" class="patient-kpi-card">
+          <div class="patient-kpi-card__icon">
+            <el-icon><component :is="card.icon" /></el-icon>
+          </div>
+          <div class="patient-kpi-card__body">
+            <div class="patient-kpi-card__label">{{ card.label }}</div>
+            <div class="patient-kpi-card__value">{{ card.value }}</div>
+            <div class="patient-kpi-card__desc">{{ card.desc }}</div>
+          </div>
         </div>
       </div>
 
@@ -284,6 +357,17 @@ onMounted(async () => {
           <div class="patient-section-subtitle">查看预约进度、支付状态与历史记录</div>
         </div>
         <div class="patient-accent">共 {{ total }} 条</div>
+      </div>
+
+      <div class="patient-chart-card" style="margin-bottom: 12px">
+        <div class="patient-chart-card__head">
+          <div>
+            <div class="patient-chart-card__title">挂号状态饼图</div>
+            <div class="patient-chart-card__desc">用图形方式查看待就诊、已就诊和取消分布</div>
+          </div>
+          <div class="patient-chart-card__meta">{{ overviewCards[4]?.value ?? 0 }} 条已就诊</div>
+        </div>
+        <div ref="chartEl" class="patient-chart" />
       </div>
 
       <el-row :gutter="8" style="margin-bottom: 8px">

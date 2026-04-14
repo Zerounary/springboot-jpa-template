@@ -29,6 +29,10 @@ public class DoctorDto {
 
     private String schedule;
 
+    private Integer dailyAppointmentLimit;
+
+    private Integer remainingAppointmentCount;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
@@ -127,6 +131,22 @@ public class DoctorDto {
 
     public void setSchedule(String schedule) {
         this.schedule = schedule;
+    }
+
+    public Integer getDailyAppointmentLimit() {
+        return dailyAppointmentLimit;
+    }
+
+    public void setDailyAppointmentLimit(Integer dailyAppointmentLimit) {
+        this.dailyAppointmentLimit = dailyAppointmentLimit;
+    }
+
+    public Integer getRemainingAppointmentCount() {
+        return remainingAppointmentCount;
+    }
+
+    public void setRemainingAppointmentCount(Integer remainingAppointmentCount) {
+        this.remainingAppointmentCount = remainingAppointmentCount;
     }
 
     public LocalDateTime getCreateTime() {

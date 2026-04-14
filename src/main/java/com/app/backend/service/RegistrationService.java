@@ -94,6 +94,13 @@ public class RegistrationService {
             throw new BizException(400, "科室不存在");
         }
 
+        if (doctor.getDailyAppointmentLimit() != null) {
+            int currentCount = countActiveDailyRegistrations(req.getDoctorId(), req.getScheduleDate());
+            if (currentCount >= doctor.getDailyAppointmentLimit()) {
+                throw new BizException(400, "该医生当日号源已满");
+            }
+        }
+
         RegistrationRecord rr = new RegistrationRecord();
         rr.setRegistrationNo(generateRegistrationNo());
         rr.setPatientId(patientId);
@@ -412,6 +419,16 @@ public class RegistrationService {
         qw.in("registration_status", 0, 1);
         long cnt = registrationRecordRepository.selectCount(qw);
         return (int) cnt + 1;
+    }
+
+    private int countActiveDailyRegistrations(Long doctorId, LocalDate scheduleDate) {
+        QueryWrapper<RegistrationRecord> qw = new QueryWrapper<>();
+        qw.eq("doctor_id", doctorId);
+        qw.eq("schedule_date", scheduleDate);
+        qw.eq("is_deleted", 0);
+        qw.in("registration_status", 0, 1);
+        long cnt = registrationRecordRepository.selectCount(qw);
+        return (int) cnt;
     }
 
     private String generateRegistrationNo() {

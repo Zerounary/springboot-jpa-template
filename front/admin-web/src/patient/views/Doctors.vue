@@ -6,6 +6,7 @@ import http from '../../utils/http'
 const loading = ref(false)
 const keyword = ref('')
 const deptId = ref(null)
+const today = new Date().toISOString().split('T')[0]
 
 const deptOptions = ref([])
 const deptNameMap = ref(new Map())
@@ -47,6 +48,20 @@ async function loadDoctors() {
     })
     list.value = res.records || []
     total.value = Number(res.total || 0)
+    
+    // Fetch remaining slots for each doctor
+    for (const doctor of list.value) {
+      try {
+        const appointmentInfo = await http.get(`/api/doctors/${doctor.doctorId}/daily-appointments`, {
+          params: { date: today }
+        })
+        doctor.remainingSlots = appointmentInfo.remainingCount
+        doctor.dailyLimit = appointmentInfo.dailyLimit
+      } catch (e) {
+        doctor.remainingSlots = doctor.dailyAppointmentLimit || 20
+        doctor.dailyLimit = doctor.dailyAppointmentLimit || 20
+      }
+    }
   } catch (e) {
     ElMessage.error(e?.message || '加载失败')
   } finally {
@@ -125,7 +140,13 @@ onMounted(async () => {
             <div class="patient-meta">科室：{{ deptNameMap.get(d.deptId) || d.deptId }}</div>
             <div class="patient-meta">职称：{{ d.jobTitle }}</div>
             <div class="patient-meta">擅长：{{ d.specialty }}</div>
-            <div v-if="d.schedule" class="patient-meta">出诊：{{ d.schedule }}</div>
+            <div v-if="d.schedule">出诊：{{ d.schedule }}</div>
+            <div class="patient-meta">
+              today's remaining slots: 
+              <span :class="d.remainingSlots > 0 ? 'patient-success' : 'patient-danger'">
+                {{ d.remainingSlots }}/{{ d.dailyLimit }}
+              </span>
+            </div>
           </div>
 
           <div v-if="total > size" style="display: flex; justify-content: center; margin-top: 12px">

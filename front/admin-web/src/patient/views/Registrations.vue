@@ -62,6 +62,7 @@ async function loadDoctors() {
       page: 0,
       size: 200,
       deptId: deptId.value,
+      scheduleDate: createForm.scheduleDate ? formatDate(createForm.scheduleDate) : undefined,
     },
   })
 
@@ -79,6 +80,12 @@ const selectedDoctor = computed(() => {
   return doctorMap.value.get(doctorId.value) || null
 })
 
+const isDoctorSoldOut = computed(() => {
+  if (!selectedDoctor.value) return false
+  const remaining = selectedDoctor.value.remainingAppointmentCount
+  return Number.isFinite(remaining) && remaining <= 0
+})
+
 async function createRegistration() {
   if (!deptId.value) {
     ElMessage.warning('请选择科室')
@@ -90,6 +97,10 @@ async function createRegistration() {
   }
   if (!createForm.scheduleDate) {
     ElMessage.warning('请选择就诊日期')
+    return
+  }
+  if (isDoctorSoldOut.value) {
+    ElMessage.warning('当前医生当日号源已满，请更换日期或医生')
     return
   }
 
@@ -193,6 +204,15 @@ watch(
   },
 )
 
+watch(
+  () => createForm.scheduleDate,
+  async () => {
+    if (deptId.value) {
+      await loadDoctors()
+    }
+  },
+)
+
 onMounted(async () => {
   await loadDepartments()
   await loadList()
@@ -221,11 +241,20 @@ onMounted(async () => {
             <el-option
               v-for="d in doctorOptions"
               :key="d.doctorId"
-              :label="`${d.realName || d.username}（￥${d.registrationFee}）`"
+              :label="`${d.realName || d.username}（￥${d.registrationFee}，余号 ${d.remainingAppointmentCount ?? d.dailyAppointmentLimit ?? '-'}）`"
               :value="d.doctorId"
+              :disabled="createForm.scheduleDate && Number.isFinite(d.remainingAppointmentCount) && d.remainingAppointmentCount <= 0"
             />
           </el-select>
-          <div v-if="selectedDoctor" class="patient-helper-text">擅长：{{ selectedDoctor.specialty }}</div>
+          <div v-if="selectedDoctor" class="patient-helper-text">
+            擅长：{{ selectedDoctor.specialty }}
+            <span v-if="selectedDoctor.dailyAppointmentLimit != null">
+              ｜每日限号：{{ selectedDoctor.dailyAppointmentLimit }}
+            </span>
+            <span v-if="selectedDoctor.remainingAppointmentCount != null">
+              ｜剩余号：{{ selectedDoctor.remainingAppointmentCount }}
+            </span>
+          </div>
         </el-form-item>
 
         <el-form-item label="就诊日期">
@@ -241,7 +270,7 @@ onMounted(async () => {
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" style="width: 100%" :loading="loadingCreate" @click="createRegistration">
+          <el-button type="primary" style="width: 100%" :loading="loadingCreate" :disabled="isDoctorSoldOut" @click="createRegistration">
             提交挂号
           </el-button>
         </el-form-item>

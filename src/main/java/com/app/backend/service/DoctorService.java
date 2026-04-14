@@ -6,9 +6,11 @@ import com.app.backend.dto.DoctorDto;
 import com.app.backend.dto.DoctorUpdateRequest;
 import com.app.backend.entity.DoctorInfo;
 import com.app.backend.entity.HospitalDepartment;
+import com.app.backend.entity.RegistrationRecord;
 import com.app.backend.entity.User;
 import com.app.backend.repository.DoctorInfoRepository;
 import com.app.backend.repository.HospitalDepartmentRepository;
+import com.app.backend.repository.RegistrationRecordRepository;
 import com.app.backend.repository.UserRepository;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -16,6 +18,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,15 +30,18 @@ public class DoctorService {
     private final DoctorInfoRepository doctorInfoRepository;
     private final UserRepository userRepository;
     private final HospitalDepartmentRepository departmentRepository;
+    private final RegistrationRecordRepository registrationRecordRepository;
     private final UserService userService;
 
     public DoctorService(DoctorInfoRepository doctorInfoRepository,
                          UserRepository userRepository,
                          HospitalDepartmentRepository departmentRepository,
+                         RegistrationRecordRepository registrationRecordRepository,
                          UserService userService) {
         this.doctorInfoRepository = doctorInfoRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+        this.registrationRecordRepository = registrationRecordRepository;
         this.userService = userService;
     }
 
@@ -67,11 +73,12 @@ public class DoctorService {
         di.setSpecialty(req.getSpecialty());
         di.setIntroduction(req.getIntroduction());
         di.setRegistrationFee(req.getRegistrationFee());
+        di.setDailyAppointmentLimit(normalizeDailyAppointmentLimit(req.getDailyAppointmentLimit()));
         di.setSchedule(req.getSchedule());
         di.setIsDeleted(0);
         doctorInfoRepository.insert(di);
 
-        return toDto(di, user);
+        return toDto(di, user, null);
     }
 
     @Transactional
@@ -102,6 +109,9 @@ public class DoctorService {
         if (req.getRegistrationFee() != null) {
             di.setRegistrationFee(req.getRegistrationFee());
         }
+        if (req.getDailyAppointmentLimit() != null) {
+            di.setDailyAppointmentLimit(normalizeDailyAppointmentLimit(req.getDailyAppointmentLimit()));
+        }
         if (req.getSchedule() != null) {
             di.setSchedule(req.getSchedule());
         }
@@ -109,7 +119,7 @@ public class DoctorService {
         doctorInfoRepository.updateById(di);
 
         User user = userRepository.selectById(di.getUserId());
-        return toDto(di, user);
+        return toDto(di, user, null);
     }
 
     @Transactional
@@ -131,11 +141,11 @@ public class DoctorService {
             throw new BizException(404, "医生不存在");
         }
         User user = userRepository.selectById(di.getUserId());
-        return toDto(di, user);
+        return toDto(di, user, null);
     }
 
     @Transactional(readOnly = true)
-    public IPage<DoctorDto> page(int page, int size, Long deptId, String keyword) {
+    public IPage<DoctorDto> page(int page, int size, Long deptId, String keyword, LocalDate scheduleDate) {
         Page<DoctorInfo> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
         QueryWrapper<DoctorInfo> qw = new QueryWrapper<>();
         qw.eq("is_deleted", 0);
@@ -147,7 +157,7 @@ public class DoctorService {
         IPage<DoctorInfo> diPage = doctorInfoRepository.selectPage(p, qw);
         List<DoctorInfo> records = diPage.getRecords();
         if (records == null || records.isEmpty()) {
-            return diPage.convert(di -> toDto(di, null));
+            return diPage.convert(di -> toDto(di, null, scheduleDate));
         }
 
         List<Long> userIds = new ArrayList<>();
@@ -181,7 +191,7 @@ public class DoctorService {
                     continue;
                 }
             }
-            dtoRecords.add(toDto(di, u));
+            dtoRecords.add(toDto(di, u, scheduleDate));
         }
 
         Page<DoctorDto> out = new Page<>(diPage.getCurrent(), diPage.getSize(), diPage.getTotal());
@@ -199,7 +209,29 @@ public class DoctorService {
         }
     }
 
-    private DoctorDto toDto(DoctorInfo di, User u) {
+    private Integer normalizeDailyAppointmentLimit(Integer dailyAppointmentLimit) {
+        if (dailyAppointmentLimit == null) {
+            return null;
+        }
+        if (dailyAppointmentLimit < 0) {
+            throw new BizException(400, "每日限号数量不能小于 0");
+        }
+        return dailyAppointmentLimit;
+    }
+
+    private int countActiveRegistrations(Long doctorId, LocalDate scheduleDate) {
+        if (scheduleDate == null) {
+            return 0;
+        }
+        QueryWrapper<RegistrationRecord> qw = new QueryWrapper<>();
+        qw.eq("doctor_id", doctorId);
+        qw.eq("schedule_date", scheduleDate);
+        qw.eq("is_deleted", 0);
+        qw.in("registration_status", 0, 1);
+        return Math.toIntExact(registrationRecordRepository.selectCount(qw));
+    }
+
+    private DoctorDto toDto(DoctorInfo di, User u, LocalDate scheduleDate) {
         DoctorDto dto = new DoctorDto();
         dto.setDoctorId(di.getDoctorId());
         dto.setUserId(di.getUserId());
@@ -209,6 +241,11 @@ public class DoctorService {
         dto.setIntroduction(di.getIntroduction());
         dto.setRegistrationFee(di.getRegistrationFee());
         dto.setSchedule(di.getSchedule());
+        dto.setDailyAppointmentLimit(di.getDailyAppointmentLimit());
+        if (di.getDailyAppointmentLimit() != null) {
+            int remaining = di.getDailyAppointmentLimit() - countActiveRegistrations(di.getDoctorId(), scheduleDate);
+            dto.setRemainingAppointmentCount(Math.max(remaining, 0));
+        }
         dto.setCreateTime(di.getCreateTime());
         dto.setUpdateTime(di.getUpdateTime());
         if (u != null) {

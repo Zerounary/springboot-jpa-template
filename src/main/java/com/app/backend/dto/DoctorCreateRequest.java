@@ -26,6 +26,9 @@ public class DoctorCreateRequest {
     @NotNull
     private BigDecimal registrationFee;
 
+    @NotNull
+    private Integer dailyAppointmentLimit;
+
     @Size(max = 255)
     private String schedule;
 
@@ -75,6 +78,14 @@ public class DoctorCreateRequest {
 
     public void setRegistrationFee(BigDecimal registrationFee) {
         this.registrationFee = registrationFee;
+    }
+
+    public Integer getDailyAppointmentLimit() {
+        return dailyAppointmentLimit;
+    }
+
+    public void setDailyAppointmentLimit(Integer dailyAppointmentLimit) {
+        this.dailyAppointmentLimit = dailyAppointmentLimit;
     }
 
     public String getSchedule() {

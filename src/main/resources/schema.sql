@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS doctor_info (
   introduction TEXT NULL,
   registration_fee DECIMAL(10,2) NOT NULL,
   schedule VARCHAR(255) NULL,
+  daily_appointment_limit INT NULL DEFAULT 20,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   is_deleted TINYINT NOT NULL DEFAULT 0,
@@ -163,6 +164,12 @@ CREATE TABLE IF NOT EXISTS doctor_info (
   UNIQUE KEY uk_doctor_user_id (user_id),
   KEY idx_doctor_dept_id (dept_id)
 );
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE doctor_info ADD COLUMN daily_appointment_limit INT NULL DEFAULT 20 AFTER schedule', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND COLUMN_NAME = 'daily_appointment_limit';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS patient_info (
   patient_id BIGINT NOT NULL AUTO_INCREMENT,
@@ -230,6 +237,12 @@ CREATE TABLE IF NOT EXISTS medical_record (
   KEY idx_record_dept_id (dept_id),
   KEY idx_record_registration_id (registration_id)
 );
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE medical_record ADD COLUMN record_status TINYINT NOT NULL DEFAULT 1 AFTER treatment_plan', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'medical_record' AND COLUMN_NAME = 'record_status';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS health_monitor (
   monitor_id BIGINT NOT NULL AUTO_INCREMENT,
@@ -593,22 +606,37 @@ CREATE TABLE IF NOT EXISTS medication_records (
 );
 
 -- Insert sample medication data
-INSERT INTO prescriptions (prescription_id, patient_id, doctor_id, title, treatment_plan, visit_date, start_date, end_date, instructions, status, reminder_times, created_at, updated_at)
+INSERT IGNORE INTO prescriptions (prescription_id, patient_id, doctor_id, title, treatment_plan, visit_date, start_date, end_date, instructions, status, reminder_times, created_at, updated_at)
 VALUES 
 ('PRE001', 3, 2, 'upper respiratory infection treatment', 'Antibiotic therapy + symptomatic treatment', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY, NOW() + INTERVAL 7 DAY, 'Take after meals, complete the course', 'ACTIVE', '["08:00", "14:00", "20:00"]', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
 ('PRE002', 4, 1, 'chronic gastritis treatment', 'Gastric mucosal protection + acid suppression', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY, NOW() + INTERVAL 21 DAY, 'Take 30 minutes before meals', 'ACTIVE', '["07:30", "19:30"]', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
 
-INSERT INTO prescription_items (prescription_id, medication_name, dosage, frequency, duration, note, quantity, unit, created_at, updated_at)
+INSERT IGNORE INTO prescription_items (prescription_id, medication_name, dosage, frequency, duration, note, quantity, unit, created_at, updated_at)
 VALUES 
 ('PRE001', 'Amoxicillin Capsules', '0.5g', '3 times a day', '7 days', 'Take after meals', 21, 'capsules', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
 ('PRE001', 'Bromhexine Tablets', '8mg', '3 times a day', '7 days', 'Take after meals', 21, 'tablets', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
 ('PRE002', 'Omeprazole Enteric-coated Capsules', '20mg', '2 times a day', '21 days', 'Take 30 minutes before meals', 42, 'capsules', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY),
 ('PRE002', 'Aluminum Magnesium Carbonate Tablets', '2 tablets', '3 times a day', '21 days', 'Chew and swallow after meals', 63, 'tablets', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
 
-INSERT INTO medication_records (record_id, prescription_id, patient_id, medication_name, planned_time, taken_at, dosage, frequency, status, notes, created_at, updated_at)
+INSERT IGNORE INTO medication_records (record_id, prescription_id, patient_id, medication_name, planned_time, taken_at, dosage, frequency, status, notes, created_at, updated_at)
 VALUES 
 ('REC001', 'PRE001', 3, 'Amoxicillin Capsules', '2024-01-15 08:00:00', '2024-01-15 08:15:00', '0.5g', '3 times a day', 'TAKEN', 'Taken on time', '2024-01-15 08:15:00', '2024-01-15 08:15:00'),
 ('REC002', 'PRE001', 3, 'Bromhexine Tablets', '2024-01-15 08:00:00', '2024-01-15 08:10:00', '8mg', '3 times a day', 'TAKEN', 'Taken on time', '2024-01-15 08:10:00', '2024-01-15 08:10:00'),
 ('REC003', 'PRE001', 3, 'Amoxicillin Capsules', '2024-01-15 14:00:00', '2024-01-15 14:30:00', '0.5g', '3 times a day', 'TAKEN', 'Taken 30 minutes late', '2024-01-15 14:30:00', '2024-01-15 14:30:00'),
 ('REC004', 'PRE002', 4, 'Omeprazole Enteric-coated Capsules', '2024-01-14 07:30:00', '2024-01-14 07:25:00', '20mg', '2 times a day', 'TAKEN', 'Taken 5 minutes early', '2024-01-14 07:25:00', '2024-01-14 07:25:00'),
 ('REC005', 'PRE002', 4, 'Aluminum Magnesium Carbonate Tablets', '2024-01-14 08:00:00', NULL, '2 tablets', '3 times a day', 'MISSED', 'Forgot to take', '2024-01-14 20:00:00', '2024-01-14 20:00:00');
+
+CREATE TABLE IF NOT EXISTS doctor_daily_appointment (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  doctor_id BIGINT NOT NULL,
+  appointment_date DATE NOT NULL,
+  daily_limit INT NOT NULL DEFAULT 20,
+  booked_count INT NOT NULL DEFAULT 0,
+  remaining_count INT NOT NULL DEFAULT 20,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_doctor_date (doctor_id, appointment_date),
+  KEY idx_daily_appointment_doctor_id (doctor_id),
+  KEY idx_daily_appointment_date (appointment_date)
+);

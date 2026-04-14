@@ -17,6 +17,8 @@ public class DoctorUpdateRequest {
 
     private BigDecimal registrationFee;
 
+    private Integer dailyAppointmentLimit;
+
     @Size(max = 255)
     private String schedule;
 
@@ -60,6 +62,14 @@ public class DoctorUpdateRequest {
 
     public void setRegistrationFee(BigDecimal registrationFee) {
         this.registrationFee = registrationFee;
+    }
+
+    public Integer getDailyAppointmentLimit() {
+        return dailyAppointmentLimit;
+    }
+
+    public void setDailyAppointmentLimit(Integer dailyAppointmentLimit) {
+        this.dailyAppointmentLimit = dailyAppointmentLimit;
     }
 
     public String getSchedule() {

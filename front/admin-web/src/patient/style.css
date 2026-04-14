@@ -554,6 +554,16 @@
   }
 }
 
+.patient-success {
+  color: var(--patient-primary);
+  font-weight: 600;
+}
+
+.patient-danger {
+  color: #f56c6c;
+  font-weight: 600;
+}
+
 @media (max-width: 380px) {
   .patient-topbar,
   .patient-content,

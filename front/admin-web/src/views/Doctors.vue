@@ -35,6 +35,7 @@ const editForm = reactive({
   specialty: '',
   introduction: '',
   registrationFee: 0,
+  dailyAppointmentLimit: 0,
   schedule: '',
 })
 
@@ -86,6 +87,7 @@ function openCreate() {
   editForm.specialty = ''
   editForm.introduction = ''
   editForm.registrationFee = 0
+  editForm.dailyAppointmentLimit = 0
   editForm.schedule = ''
   editVisible.value = true
 }
@@ -103,6 +105,7 @@ async function openEdit(row) {
     editForm.specialty = d.specialty || ''
     editForm.introduction = d.introduction || ''
     editForm.registrationFee = Number(d.registrationFee || 0)
+    editForm.dailyAppointmentLimit = Number(d.dailyAppointmentLimit || 0)
     editForm.schedule = d.schedule || ''
   } finally {
     editLoading.value = false
@@ -122,6 +125,7 @@ async function submitEdit() {
         specialty: editForm.specialty,
         introduction: editForm.introduction || null,
         registrationFee: editForm.registrationFee,
+        dailyAppointmentLimit: editForm.dailyAppointmentLimit,
         schedule: editForm.schedule || null,
       })
       ElMessage.success('已创建')
@@ -132,6 +136,7 @@ async function submitEdit() {
         specialty: editForm.specialty,
         introduction: editForm.introduction || null,
         registrationFee: editForm.registrationFee,
+        dailyAppointmentLimit: editForm.dailyAppointmentLimit,
         schedule: editForm.schedule || null,
       })
       ElMessage.success('已保存')
@@ -220,6 +225,7 @@ onMounted(async () => {
         <el-table-column prop="jobTitle" label="职称" width="140" show-overflow-tooltip />
         <el-table-column prop="specialty" label="专长" min-width="200" show-overflow-tooltip />
         <el-table-column prop="registrationFee" label="挂号费" width="100" />
+        <el-table-column prop="dailyAppointmentLimit" label="每日限号" width="110" />
         <el-table-column prop="schedule" label="出诊安排" min-width="160" show-overflow-tooltip />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
@@ -281,6 +287,10 @@ onMounted(async () => {
 
       <el-form-item label="挂号费" prop="registrationFee" :rules="[{ required: true, message: '请输入挂号费', trigger: 'change' }]">
         <el-input-number v-model="editForm.registrationFee" :min="0" :precision="2" :step="1" style="width: 220px" />
+      </el-form-item>
+
+      <el-form-item label="每日限号" prop="dailyAppointmentLimit" :rules="[{ required: true, message: '请输入每日限号', trigger: 'change' }]">
+        <el-input-number v-model="editForm.dailyAppointmentLimit" :min="0" :precision="0" :step="1" style="width: 220px" />
       </el-form-item>
 
       <el-form-item label="出诊安排" prop="schedule">

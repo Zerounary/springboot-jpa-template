@@ -29,6 +29,9 @@ public class DoctorInfo {
 
     private String schedule;
 
+    @TableField("daily_appointment_limit")
+    private Integer dailyAppointmentLimit;
+
     @TableField(value = "create_time", fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
@@ -100,6 +103,14 @@ public class DoctorInfo {
 
     public void setSchedule(String schedule) {
         this.schedule = schedule;
+    }
+
+    public Integer getDailyAppointmentLimit() {
+        return dailyAppointmentLimit;
+    }
+
+    public void setDailyAppointmentLimit(Integer dailyAppointmentLimit) {
+        this.dailyAppointmentLimit = dailyAppointmentLimit;
     }
 
     public LocalDateTime getCreateTime() {

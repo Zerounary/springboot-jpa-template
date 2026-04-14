@@ -21,6 +21,7 @@ const PatientDoctors = () => import('../patient/views/Doctors.vue')
 const PatientRegistrations = () => import('../patient/views/Registrations.vue')
 const PatientMedicalRecords = () => import('../patient/views/MedicalRecords.vue')
 const PatientHealth = () => import('../patient/views/Health.vue')
+const PatientMedication = () => import('../patient/views/Medication.vue')
 const PatientMe = () => import('../patient/views/Me.vue')
 
 const Placeholder = () => import('../views/Placeholder.vue')
@@ -68,6 +69,7 @@ const router = createRouter({
         { path: 'registrations', name: 'patient-registrations', component: PatientRegistrations },
         { path: 'medical-records', name: 'patient-medical-records', component: PatientMedicalRecords },
         { path: 'health', name: 'patient-health', component: PatientHealth },
+        { path: 'medication', name: 'patient-medication', component: PatientMedication },
         { path: 'me', name: 'patient-me', component: PatientMe },
       ],
     },

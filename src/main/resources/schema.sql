@@ -529,3 +529,86 @@ VALUES
 ('健康科普：如何预防春季流感', '王医生', NULL, '春季是流感高发季节，建议大家注意个人卫生，勤洗手，多通风，避免去人群密集场所。如出现发热、咳嗽等症状，请及时就医。', 89, 0, 1, NOW() - INTERVAL 5 DAY, NOW() - INTERVAL 5 DAY, NOW() - INTERVAL 5 DAY, 0),
 ('医院引进先进医疗设备', '设备科', NULL, '我院最新引进的64排CT和3.0T磁共振设备已正式投入使用，将大大提高诊断准确性和效率。', 67, 0, 1, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 3 DAY, 0),
 ('专家门诊时间调整通知', '门诊部', NULL, '李明主任医师门诊时间调整为周一、三、五上午，王芳副主任医师门诊时间调整为周二、四上午，请患者合理安排就诊时间。', 45, 0, 1, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, 0);
+
+-- Medication Management Tables
+CREATE TABLE IF NOT EXISTS prescriptions (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  prescription_id VARCHAR(64) NOT NULL,
+  patient_id BIGINT NOT NULL,
+  doctor_id BIGINT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  treatment_plan TEXT,
+  visit_date DATETIME,
+  start_date DATETIME,
+  end_date DATETIME,
+  instructions TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  reminder_times TEXT,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_prescriptions_id (prescription_id),
+  KEY idx_prescriptions_patient_id (patient_id),
+  KEY idx_prescriptions_doctor_id (doctor_id),
+  FOREIGN KEY (patient_id) REFERENCES users(id),
+  FOREIGN KEY (doctor_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS prescription_items (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  prescription_id VARCHAR(64) NOT NULL,
+  medication_name VARCHAR(255) NOT NULL,
+  dosage VARCHAR(100) NOT NULL,
+  frequency VARCHAR(100) NOT NULL,
+  duration VARCHAR(100),
+  note TEXT,
+  quantity INT,
+  unit VARCHAR(50),
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_prescription_items_prescription_id (prescription_id)
+);
+
+CREATE TABLE IF NOT EXISTS medication_records (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  record_id VARCHAR(64) NOT NULL,
+  prescription_id VARCHAR(64) NOT NULL,
+  patient_id BIGINT NOT NULL,
+  medication_name VARCHAR(255) NOT NULL,
+  planned_time DATETIME,
+  taken_at DATETIME NOT NULL,
+  dosage VARCHAR(100),
+  frequency VARCHAR(100),
+  status VARCHAR(20) NOT NULL DEFAULT 'TAKEN',
+  notes TEXT,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_medication_records_id (record_id),
+  KEY idx_medication_records_patient_id (patient_id),
+  KEY idx_medication_records_prescription_id (prescription_id),
+  KEY idx_medication_records_taken_at (taken_at),
+  FOREIGN KEY (patient_id) REFERENCES users(id)
+);
+
+-- Insert sample medication data
+INSERT INTO prescriptions (prescription_id, patient_id, doctor_id, title, treatment_plan, visit_date, start_date, end_date, instructions, status, reminder_times, created_at, updated_at)
+VALUES 
+('PRE001', 3, 2, 'upper respiratory infection treatment', 'Antibiotic therapy + symptomatic treatment', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY, NOW() + INTERVAL 7 DAY, 'Take after meals, complete the course', 'ACTIVE', '["08:00", "14:00", "20:00"]', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
+('PRE002', 4, 1, 'chronic gastritis treatment', 'Gastric mucosal protection + acid suppression', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY, NOW() + INTERVAL 21 DAY, 'Take 30 minutes before meals', 'ACTIVE', '["07:30", "19:30"]', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
+
+INSERT INTO prescription_items (prescription_id, medication_name, dosage, frequency, duration, note, quantity, unit, created_at, updated_at)
+VALUES 
+('PRE001', 'Amoxicillin Capsules', '0.5g', '3 times a day', '7 days', 'Take after meals', 21, 'capsules', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
+('PRE001', 'Bromhexine Tablets', '8mg', '3 times a day', '7 days', 'Take after meals', 21, 'tablets', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
+('PRE002', 'Omeprazole Enteric-coated Capsules', '20mg', '2 times a day', '21 days', 'Take 30 minutes before meals', 42, 'capsules', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY),
+('PRE002', 'Aluminum Magnesium Carbonate Tablets', '2 tablets', '3 times a day', '21 days', 'Chew and swallow after meals', 63, 'tablets', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
+
+INSERT INTO medication_records (record_id, prescription_id, patient_id, medication_name, planned_time, taken_at, dosage, frequency, status, notes, created_at, updated_at)
+VALUES 
+('REC001', 'PRE001', 3, 'Amoxicillin Capsules', '2024-01-15 08:00:00', '2024-01-15 08:15:00', '0.5g', '3 times a day', 'TAKEN', 'Taken on time', '2024-01-15 08:15:00', '2024-01-15 08:15:00'),
+('REC002', 'PRE001', 3, 'Bromhexine Tablets', '2024-01-15 08:00:00', '2024-01-15 08:10:00', '8mg', '3 times a day', 'TAKEN', 'Taken on time', '2024-01-15 08:10:00', '2024-01-15 08:10:00'),
+('REC003', 'PRE001', 3, 'Amoxicillin Capsules', '2024-01-15 14:00:00', '2024-01-15 14:30:00', '0.5g', '3 times a day', 'TAKEN', 'Taken 30 minutes late', '2024-01-15 14:30:00', '2024-01-15 14:30:00'),
+('REC004', 'PRE002', 4, 'Omeprazole Enteric-coated Capsules', '2024-01-14 07:30:00', '2024-01-14 07:25:00', '20mg', '2 times a day', 'TAKEN', 'Taken 5 minutes early', '2024-01-14 07:25:00', '2024-01-14 07:25:00'),
+('REC005', 'PRE002', 4, 'Aluminum Magnesium Carbonate Tablets', '2024-01-14 08:00:00', NULL, '2 tablets', '3 times a day', 'MISSED', 'Forgot to take', '2024-01-14 20:00:00', '2024-01-14 20:00:00');

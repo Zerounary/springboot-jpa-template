@@ -70,6 +70,11 @@ onMounted(async () => {
           <div class="patient-quick-item__title">健康监测</div>
           <div class="patient-quick-item__desc">记录血压血糖等健康指标与趋势</div>
         </div>
+        <div class="patient-quick-item" @click="router.push('/patient/medication')">
+          <div class="patient-quick-item__label">管用药</div>
+          <div class="patient-quick-item__title">用药管理</div>
+          <div class="patient-quick-item__desc">查看处方方案、设置提醒并记录服药情况</div>
+        </div>
       </div>
     </section>
   </div>

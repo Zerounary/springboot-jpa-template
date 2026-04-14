@@ -1,0 +1,206 @@
+package com.app.backend.service;
+
+import com.app.backend.dto.*;
+import com.app.backend.entity.MedicationRecord;
+import com.app.backend.entity.Prescription;
+import com.app.backend.entity.PrescriptionItem;
+import com.app.backend.repository.MedicationRecordRepository;
+import com.app.backend.repository.PrescriptionItemRepository;
+import com.app.backend.repository.PrescriptionRepository;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class MedicationService {
+
+    private final PrescriptionRepository prescriptionRepository;
+    private final PrescriptionItemRepository prescriptionItemRepository;
+    private final MedicationRecordRepository medicationRecordRepository;
+    private final ObjectMapper objectMapper;
+
+    public List<PrescriptionDto> getPatientPrescriptions(Long patientId) {
+        QueryWrapper<Prescription> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("patient_id", patientId)
+                   .eq("status", "ACTIVE")
+                   .orderByDesc("created_at");
+        
+        List<Prescription> prescriptions = prescriptionRepository.selectList(queryWrapper);
+        
+        return prescriptions.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    public List<MedicationRecordDto> getMedicationRecords(Long patientId, String startDate, String endDate) {
+        QueryWrapper<MedicationRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("patient_id", patientId);
+        
+        if (startDate != null) {
+            queryWrapper.ge("taken_at", startDate);
+        }
+        if (endDate != null) {
+            queryWrapper.le("taken_at", endDate);
+        }
+        
+        queryWrapper.orderByDesc("taken_at");
+        
+        List<MedicationRecord> records = medicationRecordRepository.selectList(queryWrapper);
+        
+        return records.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    public MedicationAdherenceStatsDto getAdherenceStats(Long patientId) {
+        LocalDateTime end = LocalDateTime.now();
+        LocalDateTime start = end.minusDays(30);
+        
+        // Get all prescriptions for the patient
+        QueryWrapper<Prescription> prescriptionQuery = new QueryWrapper<>();
+        prescriptionQuery.eq("patient_id", patientId)
+                         .eq("status", "ACTIVE");
+        List<Prescription> prescriptions = prescriptionRepository.selectList(prescriptionQuery);
+        
+        // Calculate expected doses
+        int expectedCount = 0;
+        for (Prescription prescription : prescriptions) {
+            List<String> reminderTimes = parseReminderTimes(prescription.getReminderTimes());
+            expectedCount += reminderTimes.size() * 30; // 30 days
+        }
+        
+        // Get actual taken records
+        QueryWrapper<MedicationRecord> recordQuery = new QueryWrapper<>();
+        recordQuery.eq("patient_id", patientId)
+                  .eq("status", "TAKEN")
+                  .ge("taken_at", start)
+                  .le("taken_at", end);
+        
+        List<MedicationRecord> takenRecords = medicationRecordRepository.selectList(recordQuery);
+        int takenCount = takenRecords.size();
+        
+        int missedCount = Math.max(expectedCount - takenCount, 0);
+        int rate = expectedCount > 0 ? Math.round((float) takenCount / expectedCount * 100) : 0;
+        
+        MedicationAdherenceStatsDto stats = new MedicationAdherenceStatsDto();
+        stats.setExpectedCount(expectedCount);
+        stats.setTakenCount(takenCount);
+        stats.setMissedCount(missedCount);
+        stats.setRate(rate);
+        
+        return stats;
+    }
+
+    public MedicationRecordDto createMedicationRecord(Long patientId, MedicationRecordCreateRequest request) {
+        MedicationRecord record = new MedicationRecord();
+        record.setRecordId(UUID.randomUUID().toString());
+        record.setPrescriptionId(request.getPrescriptionId());
+        record.setPatientId(patientId);
+        record.setMedicationName(request.getMedicationName());
+        record.setPlannedTime(request.getPlannedTime());
+        record.setTakenAt(request.getTakenAt());
+        record.setDosage(request.getDosage());
+        record.setFrequency(request.getFrequency());
+        record.setStatus(request.getStatus());
+        record.setNotes(request.getNotes());
+        record.setCreatedAt(LocalDateTime.now());
+        record.setUpdatedAt(LocalDateTime.now());
+        
+        medicationRecordRepository.insert(record);
+        
+        return convertToDto(record);
+    }
+
+    public void updatePrescriptionReminders(String prescriptionId, PrescriptionUpdateRequest request) {
+        QueryWrapper<Prescription> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("prescription_id", prescriptionId);
+        
+        Prescription prescription = prescriptionRepository.selectOne(queryWrapper);
+        if (prescription != null) {
+            try {
+                String reminderTimesJson = objectMapper.writeValueAsString(request.getReminderTimes());
+                prescription.setReminderTimes(reminderTimesJson);
+                prescription.setUpdatedAt(LocalDateTime.now());
+                prescriptionRepository.updateById(prescription);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to update reminder times", e);
+            }
+        }
+    }
+
+    private PrescriptionDto convertToDto(Prescription prescription) {
+        PrescriptionDto dto = new PrescriptionDto();
+        dto.setId(prescription.getId());
+        dto.setPrescriptionId(prescription.getPrescriptionId());
+        dto.setPatientId(prescription.getPatientId());
+        dto.setDoctorId(prescription.getDoctorId());
+        dto.setTitle(prescription.getTitle());
+        dto.setTreatmentPlan(prescription.getTreatmentPlan());
+        dto.setVisitDate(prescription.getVisitDate());
+        dto.setStartDate(prescription.getStartDate());
+        dto.setEndDate(prescription.getEndDate());
+        dto.setInstructions(prescription.getInstructions());
+        dto.setStatus(prescription.getStatus());
+        dto.setReminderTimes(parseReminderTimes(prescription.getReminderTimes()));
+        dto.setCreatedAt(prescription.getCreatedAt());
+        dto.setUpdatedAt(prescription.getUpdatedAt());
+        
+        // Get prescription items
+        QueryWrapper<PrescriptionItem> itemQuery = new QueryWrapper<>();
+        itemQuery.eq("prescription_id", prescription.getPrescriptionId());
+        List<PrescriptionItem> items = prescriptionItemRepository.selectList(itemQuery);
+        dto.setItems(items.stream().map(this::convertToDto).collect(Collectors.toList()));
+        
+        return dto;
+    }
+
+    private PrescriptionItemDto convertToDto(PrescriptionItem item) {
+        PrescriptionItemDto dto = new PrescriptionItemDto();
+        dto.setId(item.getId());
+        dto.setPrescriptionId(item.getPrescriptionId());
+        dto.setMedicationName(item.getMedicationName());
+        dto.setDosage(item.getDosage());
+        dto.setFrequency(item.getFrequency());
+        dto.setDuration(item.getDuration());
+        dto.setNote(item.getNote());
+        dto.setQuantity(item.getQuantity());
+        dto.setUnit(item.getUnit());
+        return dto;
+    }
+
+    private MedicationRecordDto convertToDto(MedicationRecord record) {
+        MedicationRecordDto dto = new MedicationRecordDto();
+        dto.setId(record.getId());
+        dto.setRecordId(record.getRecordId());
+        dto.setPrescriptionId(record.getPrescriptionId());
+        dto.setPatientId(record.getPatientId());
+        dto.setMedicationName(record.getMedicationName());
+        dto.setPlannedTime(record.getPlannedTime());
+        dto.setTakenAt(record.getTakenAt());
+        dto.setDosage(record.getDosage());
+        dto.setFrequency(record.getFrequency());
+        dto.setStatus(record.getStatus());
+        dto.setNotes(record.getNotes());
+        dto.setCreatedAt(record.getCreatedAt());
+        dto.setUpdatedAt(record.getUpdatedAt());
+        return dto;
+    }
+
+    private List<String> parseReminderTimes(String reminderTimesJson) {
+        if (reminderTimesJson == null || reminderTimesJson.isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            return objectMapper.readValue(reminderTimesJson, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            return new ArrayList<>();
+        }
+    }
+}

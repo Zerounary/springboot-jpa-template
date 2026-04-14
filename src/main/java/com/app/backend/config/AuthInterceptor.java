@@ -17,6 +17,24 @@ public class AuthInterceptor implements HandlerInterceptor {
         this.jwtService = jwtService;
     }
 
+    public static Long getCurrentUserId(HttpServletRequest request) {
+        Object userId = request.getAttribute(REQ_ATTR_USER_ID);
+        if (userId instanceof Long) {
+            return (Long) userId;
+        }
+        if (userId instanceof Number) {
+            return ((Number) userId).longValue();
+        }
+        if (userId instanceof String) {
+            try {
+                return Long.valueOf((String) userId);
+            } catch (NumberFormatException ex) {
+                throw new BizException(401, "未登录");
+            }
+        }
+        throw new BizException(401, "未登录");
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {

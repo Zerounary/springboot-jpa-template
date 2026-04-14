@@ -15,6 +15,15 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthed: (s) => !!s.token,
     roleType: (s) => s.me?.roleType,
+    isAdmin: (s) => s.me?.roleType === 1,
+    isDoctor: (s) => s.me?.roleType === 2,
+    isPatient: (s) => s.me?.roleType === 3,
+    homePath: (s) => {
+      if (s.me?.roleType === 3) {
+        return '/patient/home'
+      }
+      return '/dashboard'
+    },
   },
   actions: {
     async login(username, password) {
@@ -27,6 +36,9 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         this.loading = false
       }
+    },
+    async register(payload) {
+      return await http.post('/api/auth/register', payload)
     },
     async fetchMe() {
       const me = await http.get('/api/auth/me')

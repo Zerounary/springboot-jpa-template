@@ -31,7 +31,15 @@ const pageSubtitle = computed(() => {
 
 const userInitial = computed(() => (auth.me?.realName || auth.me?.username || '管').slice(0, 1))
 
-const roleLabel = computed(() => (isAdmin.value ? '系统管理员' : '业务人员'))
+const roleLabel = computed(() => {
+  if (auth.roleType === 1) {
+    return '系统管理员'
+  }
+  if (auth.roleType === 2) {
+    return '医生'
+  }
+  return '业务人员'
+})
 
 const menus = computed(() => {
   const base = [

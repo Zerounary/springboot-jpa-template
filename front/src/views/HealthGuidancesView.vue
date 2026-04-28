@@ -81,6 +81,9 @@ function predictionLabel(item: PredictionResultDto) {
 }
 
 async function loadModels() {
+  if (isPatient.value) {
+    return
+  }
   try {
     const models = await mlModelListApi({ activeOnly: false })
     const map: Record<number, string> = {}
@@ -160,6 +163,9 @@ async function ensureDoctorLabels(ids: number[]) {
 }
 
 async function ensurePredictionModelLabels(ids: number[]) {
+  if (isPatient.value) {
+    return
+  }
   const missing = Array.from(new Set(ids)).filter((id) => id && !predictionModelLabelMap.value[id])
   if (!missing.length) {
     return
@@ -181,7 +187,7 @@ async function ensurePredictionModelLabels(ids: number[]) {
 }
 
 async function loadPredictionOptions(patientId: number | null) {
-  if (!patientId) {
+  if (!patientId || isPatient.value) {
     predictionOptions.value = []
     return
   }
@@ -358,7 +364,13 @@ async function openDetail(r: HealthGuidanceDto) {
   detailLoading.value = true
   detail.value = null
   try {
-    detail.value = await healthGuidanceDetailApi(r.id)
+    if (isPatient.value) {
+      // 患者端直接使用列表中的数据，避免权限问题
+      detail.value = r
+    } else {
+      // 医生和管理员调用详情API获取完整信息
+      detail.value = await healthGuidanceDetailApi(r.id)
+    }
   } finally {
     detailLoading.value = false
   }

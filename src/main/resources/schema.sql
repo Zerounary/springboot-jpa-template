@@ -26,12 +26,14 @@ CREATE TABLE IF NOT EXISTS patients (
   user_id VARCHAR(64) NOT NULL,
   account_id BIGINT NULL,
   organization_id BIGINT NULL,
+  patient_name VARCHAR(64) NULL,
   gender TINYINT NOT NULL,
   age INT NOT NULL,
   birth_date DATE NOT NULL,
   phone VARCHAR(32) NOT NULL,
   medical_institution VARCHAR(128) NOT NULL,
   nation VARCHAR(32) NULL,
+  id_card VARCHAR(18) NULL,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   PRIMARY KEY (id),
@@ -39,6 +41,8 @@ CREATE TABLE IF NOT EXISTS patients (
   KEY idx_patients_organization_id (organization_id),
   KEY idx_patients_medical_institution (medical_institution),
   KEY idx_patients_account_id (account_id),
+  KEY idx_patients_id_card (id_card),
+  KEY idx_patients_patient_name (patient_name),
   CONSTRAINT fk_patients_organization_id FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT fk_patients_account_id FOREIGN KEY (account_id) REFERENCES users (id)
 );
@@ -285,6 +289,74 @@ PREPARE stmt FROM @ddl;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+SET @ddl = (
+  SELECT IF(
+    EXISTS(
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'patients'
+        AND COLUMN_NAME = 'id_card'
+    ),
+    'SELECT 1',
+    'ALTER TABLE patients ADD COLUMN id_card VARCHAR(18) NULL'
+  )
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = (
+  SELECT IF(
+    EXISTS(
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'patients'
+        AND INDEX_NAME = 'idx_patients_id_card'
+    ),
+    'SELECT 1',
+    'ALTER TABLE patients ADD INDEX idx_patients_id_card (id_card)'
+  )
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = (
+  SELECT IF(
+    EXISTS(
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'patients'
+        AND COLUMN_NAME = 'patient_name'
+    ),
+    'SELECT 1',
+    'ALTER TABLE patients ADD COLUMN patient_name VARCHAR(64) NULL'
+  )
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @ddl = (
+  SELECT IF(
+    EXISTS(
+      SELECT 1
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'patients'
+        AND INDEX_NAME = 'idx_patients_patient_name'
+    ),
+    'SELECT 1',
+    'ALTER TABLE patients ADD INDEX idx_patients_patient_name (patient_name)'
+  )
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 INSERT INTO organizations (id, org_code, org_name, created_at, updated_at)
 VALUES
   (1, 'ORG_A', '机构A', NOW(), NOW()),
@@ -303,13 +375,13 @@ UPDATE users SET role = 'ADMIN' WHERE username = 'admin';
 UPDATE users SET role = 'DOCTOR' WHERE username = 'doctor';
 UPDATE users SET role = 'PATIENT' WHERE username = 'patient1001';
 
-INSERT INTO patients (id, user_id, account_id, organization_id, gender, age, birth_date, phone, medical_institution, nation, created_at, updated_at)
+INSERT INTO patients (id, user_id, account_id, organization_id, patient_name, gender, age, birth_date, phone, medical_institution, nation, id_card, created_at, updated_at)
 VALUES
-  (1001, 'U1001', 10001, 1, 1, 55, '1969-01-01', '13800001001', '机构A', '汉', NOW(), NOW()),
-  (1002, 'U1002', NULL, 1, 0, 42, '1982-01-01', '13800001002', '机构A', '汉', NOW(), NOW()),
-  (1003, 'U1003', NULL, 2, 1, 68, '1956-01-01', '13800001003', '机构B', '汉', NOW(), NOW()),
-  (1004, 'U1004', NULL, 2, 0, 35, '1989-01-01', '13800001004', '机构B', '汉', NOW(), NOW()),
-  (1005, 'U1005', NULL, 3, 1, 72, '1952-01-01', '13800001005', '机构C', '汉', NOW(), NOW())
+  (1001, 'U1001', 10001, 1, '张三', 1, 55, '1969-01-01', '13800001001', '机构A', '汉', '110101196901011234', NOW(), NOW()),
+  (1002, 'U1002', NULL, 1, '李四', 0, 42, '1982-01-01', '13800001002', '机构A', '汉', '110101198201012345', NOW(), NOW()),
+  (1003, 'U1003', NULL, 2, '王五', 1, 68, '1956-01-01', '13800001003', '机构B', '汉', '110101195601013456', NOW(), NOW()),
+  (1004, 'U1004', NULL, 2, '赵六', 0, 35, '1989-01-01', '13800001004', '机构B', '汉', '110101198901014567', NOW(), NOW()),
+  (1005, 'U1005', NULL, 3, '钱七', 1, 72, '1952-01-01', '13800001005', '机构C', '汉', '110101195201015678', NOW(), NOW())
 ON DUPLICATE KEY UPDATE user_id = user_id;
 
 UPDATE patients SET account_id = 10001 WHERE id = 1001 AND account_id IS NULL;

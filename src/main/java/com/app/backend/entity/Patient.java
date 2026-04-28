@@ -24,6 +24,9 @@ public class Patient {
     @TableField("organization_id")
     private Long organizationId;
 
+    @TableField("patient_name")
+    private String patientName;
+
     private Integer gender;
 
     private Integer age;
@@ -37,6 +40,9 @@ public class Patient {
     private String medicalInstitution;
 
     private String nation;
+
+    @TableField("id_card")
+    private String idCard;
 
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
@@ -74,6 +80,14 @@ public class Patient {
 
     public void setOrganizationId(Long organizationId) {
         this.organizationId = organizationId;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
 
     public Integer getGender() {
@@ -122,6 +136,14 @@ public class Patient {
 
     public void setNation(String nation) {
         this.nation = nation;
+    }
+
+    public String getIdCard() {
+        return idCard;
+    }
+
+    public void setIdCard(String idCard) {
+        this.idCard = idCard;
     }
 
     public LocalDateTime getCreatedAt() {

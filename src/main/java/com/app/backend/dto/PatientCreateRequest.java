@@ -14,7 +14,7 @@ public class PatientCreateRequest {
     private Long accountId;
 
     private Long organizationId;
-
+    private String patientName;
     @NotNull
     private Integer gender;
 
@@ -32,6 +32,9 @@ public class PatientCreateRequest {
 
     @Size(max = 32)
     private String nation;
+
+    @Size(max = 18)
+    private String idCard;
 
     public String getUserId() {
         return userId;
@@ -55,6 +58,14 @@ public class PatientCreateRequest {
 
     public void setOrganizationId(Long organizationId) {
         this.organizationId = organizationId;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
 
     public Integer getGender() {
@@ -103,5 +114,13 @@ public class PatientCreateRequest {
 
     public void setNation(String nation) {
         this.nation = nation;
+    }
+
+    public String getIdCard() {
+        return idCard;
+    }
+
+    public void setIdCard(String idCard) {
+        this.idCard = idCard;
     }
 }

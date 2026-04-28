@@ -6,12 +6,14 @@ export type PatientDto = {
   userId: string
   accountId?: number
   organizationId?: number
+  patientName?: string
   gender: number
   age: number
   birthDate: string
   phone: string
   medicalInstitution: string
   nation?: string
+  idCard?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -20,12 +22,14 @@ export type PatientCreateRequest = {
   userId: string
   accountId?: number
   organizationId?: number
+  patientName?: string
   gender: number
   age: number
   birthDate: string
   phone: string
   medicalInstitution?: string
   nation?: string
+  idCard?: string
 }
 
 export type PatientUpdateRequest = {
@@ -34,8 +38,10 @@ export type PatientUpdateRequest = {
   birthDate: string
   phone?: string
   organizationId?: number
+  patientName?: string
   medicalInstitution?: string
   nation?: string
+  idCard?: string
 }
 
 export function patientPageApi(params: { page: number; size: number; keyword?: string | null }) {

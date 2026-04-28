@@ -40,12 +40,14 @@ const form = reactive({
   userId: '',
   accountId: null as number | null,
   organizationId: null as number | null,
+  patientName: '',
   gender: 1,
   age: 40,
   birthDate: null as Dayjs | null,
   phone: '',
   medicalInstitution: '',
   nation: '',
+  idCard: '',
 })
 
 const modalTitle = computed(() => {
@@ -117,12 +119,14 @@ function resetForm() {
   form.userId = ''
   form.accountId = null
   form.organizationId = null
+  form.patientName = ''
   form.gender = 1
   form.age = 40
   form.birthDate = null
   form.phone = ''
   form.medicalInstitution = ''
   form.nation = ''
+  form.idCard = ''
 }
 
 function openCreate() {
@@ -139,12 +143,14 @@ function openEdit(r: PatientDto) {
   form.userId = r.userId
   form.accountId = r.accountId ?? null
   form.organizationId = r.organizationId ?? null
+  form.patientName = r.patientName || ''
   form.gender = r.gender
   form.age = r.age
   form.birthDate = r.birthDate ? dayjs(r.birthDate) : null
   form.phone = r.phone
   form.medicalInstitution = r.medicalInstitution
   form.nation = r.nation || ''
+  form.idCard = r.idCard || ''
   modalOpen.value = true
 }
 
@@ -187,12 +193,14 @@ async function submit() {
         userId: form.userId,
         accountId: form.accountId ?? undefined,
         organizationId: form.organizationId ?? undefined,
+        patientName: form.patientName || undefined,
         gender: form.gender,
         age: form.age,
         birthDate: birthDateStr,
         phone: form.phone,
         medicalInstitution: form.medicalInstitution || undefined,
         nation: form.nation || undefined,
+        idCard: form.idCard || undefined,
       }
       await patientCreateApi(req)
       message.success('创建成功')
@@ -203,8 +211,10 @@ async function submit() {
         birthDate: birthDateStr,
         phone: form.phone || undefined,
         organizationId: form.organizationId ?? undefined,
+        patientName: form.patientName || undefined,
         medicalInstitution: form.medicalInstitution || undefined,
         nation: form.nation || undefined,
+        idCard: form.idCard || undefined,
       }
       if (isPatient.value) {
         await patientUpdateMeApi(req)
@@ -248,7 +258,7 @@ onMounted(() => {
 
     <a-form v-if="!isPatient" layout="inline" style="margin-bottom: 12px" @submit.prevent>
       <a-form-item label="关键词">
-        <a-input v-model:value="query.keyword" placeholder="userId/phone/医疗机构" style="width: 260px" />
+        <a-input v-model:value="query.keyword" placeholder="userId/phone/医疗机构/身份证/患者姓名" style="width: 340px" />
       </a-form-item>
       <a-form-item>
         <a-button type="primary" :loading="loading" @click="onSearch">查询</a-button>
@@ -266,12 +276,14 @@ onMounted(() => {
     </div>
     <a-card v-if="isPatient" :loading="loading" style="margin-bottom: 12px" :bordered="false">
       <a-descriptions v-if="myProfile" bordered :column="2" size="middle">
+        <a-descriptions-item label="患者姓名">{{ myProfile.patientName || '-' }}</a-descriptions-item>
         <a-descriptions-item label="性别">{{ myProfile.gender === 1 ? '男' : '女' }}</a-descriptions-item>
         <a-descriptions-item label="年龄">{{ myProfile.age }}</a-descriptions-item>
         <a-descriptions-item label="出生日期">{{ myProfile.birthDate }}</a-descriptions-item>
         <a-descriptions-item label="手机号">{{ myProfile.phone }}</a-descriptions-item>
         <a-descriptions-item label="医疗机构">{{ myProfile.medicalInstitution }}</a-descriptions-item>
         <a-descriptions-item label="民族">{{ myProfile.nation || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="身份证号">{{ myProfile.idCard || '-' }}</a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ myProfile.createdAt || '-' }}</a-descriptions-item>
         <a-descriptions-item label="更新时间">{{ myProfile.updatedAt || '-' }}</a-descriptions-item>
       </a-descriptions>
@@ -292,6 +304,7 @@ onMounted(() => {
     >
       <a-table-column title="ID" data-index="id" width="80" />
       <a-table-column title="用户标识" data-index="userId" />
+      <a-table-column title="患者姓名" data-index="patientName" width="120" />
       <a-table-column v-if="!isPatient" title="账号ID" data-index="accountId" width="120" />
       <a-table-column title="性别" :customRender="genderRender" width="90" />
       <a-table-column title="年龄" data-index="age" width="90" />
@@ -299,6 +312,7 @@ onMounted(() => {
       <a-table-column title="手机号" data-index="phone" width="150" />
       <a-table-column title="医疗机构" data-index="medicalInstitution" />
       <a-table-column title="民族" data-index="nation" width="120" />
+      <a-table-column title="身份证号" data-index="idCard" width="180" />
       <a-table-column v-if="!isPatient" title="操作" width="180">
         <template #default="{ record }">
           <a-space>
@@ -319,6 +333,9 @@ onMounted(() => {
       <a-form layout="vertical">
         <a-form-item v-if="!isPatient" label="用户唯一标识" required>
           <a-input v-model:value="form.userId" :disabled="!!editingId" placeholder="例如 U1001" />
+        </a-form-item>
+        <a-form-item label="患者姓名">
+          <a-input v-model:value="form.patientName" placeholder="请输入患者姓名" />
         </a-form-item>
         <a-form-item v-if="!isPatient && !editingId" label="绑定账号ID">
           <a-input-number v-model:value="form.accountId" :min="1" style="width: 100%" placeholder="例如 10001" />
@@ -355,6 +372,9 @@ onMounted(() => {
         </a-form-item>
         <a-form-item label="民族">
           <a-input v-model:value="form.nation" />
+        </a-form-item>
+        <a-form-item label="身份证号">
+          <a-input v-model:value="form.idCard" placeholder="请输入18位身份证号" />
         </a-form-item>
       </a-form>
     </a-modal>

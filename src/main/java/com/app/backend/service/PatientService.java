@@ -38,6 +38,7 @@ public class PatientService {
         p.setUserId(req.getUserId());
         p.setAccountId(req.getAccountId());
         p.setOrganizationId(req.getOrganizationId());
+        p.setPatientName(req.getPatientName());
         p.setGender(req.getGender());
         p.setAge(req.getAge());
         p.setBirthDate(req.getBirthDate());
@@ -51,6 +52,7 @@ public class PatientService {
             throw new BizException(400, "请选择医疗机构");
         }
         p.setNation(req.getNation());
+        p.setIdCard(req.getIdCard());
         patientRepository.insert(p);
         return toDto(p);
     }
@@ -74,7 +76,13 @@ public class PatientService {
         if (req.getMedicalInstitution() != null) {
             p.setMedicalInstitution(req.getMedicalInstitution());
         }
+        if (req.getPatientName() != null) {
+            p.setPatientName(req.getPatientName());
+        }
         p.setNation(req.getNation());
+        if (req.getIdCard() != null) {
+            p.setIdCard(req.getIdCard());
+        }
         patientRepository.updateById(p);
         return toDto(p);
     }
@@ -103,7 +111,9 @@ public class PatientService {
         if (keyword != null) {
             qw.and(w -> w.like("user_id", keyword)
                     .or().like("phone", keyword)
-                    .or().like("medical_institution", keyword));
+                    .or().like("medical_institution", keyword)
+                    .or().like("id_card", keyword)
+                    .or().like("patient_name", keyword));
         }
         qw.orderByDesc("id");
         IPage<Patient> result = patientRepository.selectPage(p, qw);
@@ -154,12 +164,14 @@ public class PatientService {
         dto.setUserId(p.getUserId());
         dto.setAccountId(p.getAccountId());
         dto.setOrganizationId(p.getOrganizationId());
+        dto.setPatientName(p.getPatientName());
         dto.setGender(p.getGender());
         dto.setAge(p.getAge());
         dto.setBirthDate(p.getBirthDate());
         dto.setPhone(p.getPhone());
         dto.setMedicalInstitution(p.getMedicalInstitution());
         dto.setNation(p.getNation());
+        dto.setIdCard(p.getIdCard());
         dto.setCreatedAt(p.getCreatedAt());
         dto.setUpdatedAt(p.getUpdatedAt());
         return dto;

@@ -73,7 +73,7 @@ async function onRegister() {
     <div class="login-mask" />
     <div class="login-container">
       <div class="login-header">
-        <a-typography-title :level="3" style="margin: 0">社区医院信息平台登录</a-typography-title>
+        <a-typography-title :level="1" style="margin: 0;">社区医院信息平台登录</a-typography-title>
         <a-typography-text type="secondary">请使用账号密码登录系统</a-typography-text>
       </div>
 

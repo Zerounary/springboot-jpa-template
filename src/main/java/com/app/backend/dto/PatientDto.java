@@ -9,12 +9,14 @@ public class PatientDto {
     private String userId;
     private Long accountId;
     private Long organizationId;
+    private String patientName;
     private Integer gender;
     private Integer age;
     private LocalDate birthDate;
     private String phone;
     private String medicalInstitution;
     private String nation;
+    private String idCard;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -48,6 +50,14 @@ public class PatientDto {
 
     public void setOrganizationId(Long organizationId) {
         this.organizationId = organizationId;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
 
     public Integer getGender() {
@@ -96,6 +106,14 @@ public class PatientDto {
 
     public void setNation(String nation) {
         this.nation = nation;
+    }
+
+    public String getIdCard() {
+        return idCard;
+    }
+
+    public void setIdCard(String idCard) {
+        this.idCard = idCard;
     }
 
     public LocalDateTime getCreatedAt() {

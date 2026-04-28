@@ -433,8 +433,8 @@ onMounted(loadModels)
           <a-space>
             <a-button type="link" @click="() => openDetail(record)">详情</a-button>
             <a-button v-if="canManage" type="link" @click="() => toGuidanceCreate(record)">写健康指导</a-button>
-            <a-button type="link" @click="() => openEdit(record)">编辑</a-button>
-            <a-button type="link" danger @click="() => confirmDelete(record)">删除</a-button>
+            <a-button v-if="!isPatient" type="link" @click="() => openEdit(record)">编辑</a-button>
+            <a-button v-if="!isPatient" type="link" danger @click="() => confirmDelete(record)">删除</a-button>
           </a-space>
         </template>
       </a-table-column>

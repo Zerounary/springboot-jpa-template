@@ -55,6 +55,23 @@ public class MedicationService {
         }
     }
 
+    public List<PrescriptionDto> getMyPrescriptions(Long userId) {
+        try {
+            // Get patientId from userId
+            QueryWrapper<PatientInfo> patientQuery = new QueryWrapper<>();
+            patientQuery.eq("user_id", userId).eq("is_deleted", 0);
+            PatientInfo patient = patientInfoRepository.selectOne(patientQuery);
+            
+            if (patient == null) {
+                return new ArrayList<>();
+            }
+            
+            return getPatientPrescriptions(patient.getPatientId());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
     public List<MedicationRecordDto> getMedicationRecords(Long patientId, String startDate, String endDate) {
         QueryWrapper<MedicationRecord> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("patient_id", patientId);
@@ -83,11 +100,48 @@ public class MedicationService {
                          .eq("status", "ACTIVE");
         List<Prescription> prescriptions = prescriptionRepository.selectList(prescriptionQuery);
         
-        // Calculate expected doses
+        // Calculate expected doses based on actual prescription time range
         int expectedCount = 0;
         for (Prescription prescription : prescriptions) {
             List<String> reminderTimes = parseReminderTimes(prescription.getReminderTimes());
-            expectedCount += reminderTimes.size() * 30; // 30 days
+            if (reminderTimes.isEmpty()) {
+                continue;
+            }
+            
+            LocalDateTime prescriptionStart = prescription.getStartDate();
+            LocalDateTime prescriptionEnd = prescription.getEndDate();
+            
+            // If no start date, use visit date
+            if (prescriptionStart == null) {
+                prescriptionStart = prescription.getVisitDate();
+            }
+            // If no end date, assume 30 days from start
+            if (prescriptionEnd == null && prescriptionStart != null) {
+                prescriptionEnd = prescriptionStart.plusDays(30);
+            }
+            
+            if (prescriptionStart == null) {
+                continue;
+            }
+            
+            // Calculate overlap with the 30-day period
+            LocalDateTime effectiveStart = prescriptionStart.isBefore(start) ? start : prescriptionStart;
+            LocalDateTime effectiveEnd = prescriptionEnd == null ? end : (prescriptionEnd.isBefore(end) ? prescriptionEnd : end);
+            
+            if (effectiveStart.isAfter(effectiveEnd)) {
+                continue;
+            }
+            
+            // Calculate number of days in the overlap
+            long days = java.time.Duration.between(effectiveStart, effectiveEnd).toDays() + 1;
+            
+            // Count medication items for this prescription
+            QueryWrapper<PrescriptionItem> itemQuery = new QueryWrapper<>();
+            itemQuery.eq("prescription_id", prescription.getId());
+            List<PrescriptionItem> items = prescriptionItemRepository.selectList(itemQuery);
+            int itemCount = items != null && !items.isEmpty() ? items.size() : 1;
+            
+            expectedCount += reminderTimes.size() * (int) days * itemCount;
         }
         
         // Get actual taken records

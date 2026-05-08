@@ -66,6 +66,7 @@ function parseMedicationItems(planText) {
       name: '遵医嘱用药',
       dosage: '按医嘱',
       frequency: '每日 2 次',
+      duration: '按医嘱',
       note: '当前病历未拆分到具体药品，先按治疗方案展示。',
     }]
   }
@@ -76,7 +77,8 @@ function parseMedicationItems(planText) {
       name: parts[0] || `方案 ${index + 1}`,
       dosage: parts[1] || '按医嘱',
       frequency: parts[2] || '每日 2 次',
-      note: parts.slice(3).join('，') || line,
+      duration: parts[3] || '按医嘱',
+      note: parts.slice(4).join('，') || line,
     }
   })
 }
@@ -114,41 +116,44 @@ function isPrescriptionActiveOn(prescription, date) {
 async function loadPrescriptions() {
   loading.value = true
   try {
-    // First try to load real prescriptions from the API
-    const prescriptionRes = await http.get('/api/patient/prescriptions')
+    // Ensure we have user info
+    if (!auth.me) {
+      await auth.fetchMe()
+    }
+
+    // Load prescriptions - backend will filter by current user
+    const prescriptionRes = await http.get('/api/prescriptions/patient/me')
     const reminderMap = readJson(userStorageKey('patient_medication_reminders'), {})
 
     if (prescriptionRes && prescriptionRes.length > 0) {
       // Use real prescription data
       prescriptions.value = prescriptionRes.map((item) => {
-        const firstItem = item.items?.[0] || {}
         const savedTimes = reminderMap[item.prescriptionId]
         const items = item.items?.map((i) => ({
           name: i.medicationName,
           dosage: i.dosage,
           frequency: i.frequency,
+          duration: i.duration,
           note: i.note,
         })) || []
 
         return {
           prescriptionId: item.prescriptionId,
+          id: item.id,
           recordId: item.recordId,
           title: item.title || '处方',
           doctorName: item.doctorName || '医生',
           visitDate: item.visitDate,
+          createdAt: item.createdAt,
           startDate: formatDate(item.startDate || new Date()),
           endDate: formatDate(item.endDate || new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)),
           treatmentPlan: item.treatmentPlan || item.instructions || '请遵医嘱服药',
-          medicationName: firstItem.medicationName || '药物',
-          dosage: firstItem.dosage || '按医嘱',
-          frequency: firstItem.frequency || '每日2次',
-          instructions: firstItem.note || '',
           items,
-          reminderTimes: Array.isArray(savedTimes) && savedTimes.length > 0 ? savedTimes : (item.reminderTimes || defaultReminderTimes(firstItem.frequency)),
+          reminderTimes: Array.isArray(savedTimes) && savedTimes.length > 0 ? savedTimes : (item.reminderTimes || ['08:00', '14:00', '20:00']),
         }
       })
     } else {
-      // Fallback to parsing from medical records
+      // Fallback to parsing from medical records if no prescriptions
       const listRes = await http.get('/api/medical-records', {
         params: {
           page: 0,
@@ -180,13 +185,10 @@ async function loadPrescriptions() {
             title: item.diagnosis || '治疗方案',
             doctorName: item.doctorRealName || '医生',
             visitDate: item.visitDate,
+            createdAt: item.createTime,
             startDate: formatDate(item.visitDate || new Date()),
             endDate: formatDate(new Date(new Date(item.visitDate || Date.now()).getTime() + 6 * 24 * 60 * 60 * 1000)),
             treatmentPlan: item.treatmentPlan || '请遵医嘱执行当前治疗方案。',
-            medicationName: first.name,
-            dosage: first.dosage,
-            frequency: first.frequency,
-            instructions: first.note,
             items,
             reminderTimes: Array.isArray(savedTimes) && savedTimes.length > 0 ? savedTimes : defaultReminderTimes(first.frequency),
           }
@@ -214,17 +216,37 @@ function saveReminderSettings() {
 
 const todayTasks = computed(() => {
   const today = new Date()
-  return prescriptions.value
+  const tasksByTime = new Map()
+  
+  prescriptions.value
     .filter((item) => isPrescriptionActiveOn(item, today))
-    .flatMap((item) => item.reminderTimes.map((time) => ({
-      prescriptionId: item.prescriptionId,
-      medicationName: item.medicationName,
-      dosage: item.dosage,
-      frequency: item.frequency,
-      instructions: item.instructions,
-      doctorName: item.doctorName,
-      time,
-    })))
+    .forEach((prescription) => {
+      prescription.reminderTimes.forEach((time) => {
+        if (!tasksByTime.has(time)) {
+          tasksByTime.set(time, [])
+        }
+        // Add each medication item as a separate task
+        prescription.items.forEach((item) => {
+          tasksByTime.get(time).push({
+            prescriptionId: prescription.prescriptionId,
+            recordId: prescription.recordId,
+            medicationName: item.name,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration: item.duration,
+            note: item.note,
+            doctorName: prescription.doctorName,
+            diagnosis: prescription.diagnosis,
+            time,
+          })
+        })
+      })
+    })
+  
+  // Convert to sorted array
+  return Array.from(tasksByTime.entries())
+    .map(([time, medications]) => ({ time, medications }))
+    .sort((a, b) => a.time.localeCompare(b.time))
 })
 
 const upcomingReminders = computed(() => {
@@ -238,6 +260,10 @@ const upcomingReminders = computed(() => {
     })
     .filter((task) => task.target >= now && task.target.getTime() - now.getTime() <= 6 * 60 * 60 * 1000)
     .sort((a, b) => a.target - b.target)
+    .map((task) => ({
+      time: task.time,
+      medications: task.medications,
+    }))
 })
 
 const calendarMap = computed(() => {
@@ -263,7 +289,8 @@ const adherenceStats = computed(() => {
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     for (const prescription of prescriptions.value) {
       if (isPrescriptionActiveOn(prescription, d)) {
-        expectedCount += prescription.reminderTimes.length
+        // Count each medication item for each reminder time
+        expectedCount += prescription.reminderTimes.length * prescription.items.length
       }
     }
   }
@@ -278,7 +305,12 @@ const adherenceStats = computed(() => {
 })
 
 const overviewCards = computed(() => [
-  { label: '今日待服次数', value: todayTasks.value.length, desc: '按今日提醒时间生成任务', icon: FirstAidKit },
+  { 
+    label: '今日待服药物', 
+    value: todayTasks.value.reduce((sum, task) => sum + task.medications.length, 0), 
+    desc: '按今日提醒时间生成的药物任务', 
+    icon: FirstAidKit 
+  },
   { label: '近期提醒', value: upcomingReminders.value.length, desc: '未来 6 小时内待提醒', icon: AlarmClock },
   { label: '30 天计划', value: adherenceStats.value.expectedCount, desc: '依从性统计基准次数', icon: DataAnalysis },
   { label: '依从率', value: `${adherenceStats.value.rate}%`, desc: '近 30 天执行完成情况', icon: Opportunity },
@@ -449,25 +481,26 @@ onUnmounted(() => {
             <div class="patient-section-title">今日用药提醒</div>
             <div class="patient-section-subtitle">按提醒时间记录服药情况</div>
           </div>
-          <div class="patient-accent">{{ todayTasks.length }} 次</div>
+          <div class="patient-accent">{{ todayTasks.length }} 个时间点</div>
         </div>
 
         <el-skeleton :loading="loading" animated>
           <template #default>
             <div v-if="todayTasks.length === 0" class="patient-empty-text">当前没有可执行的用药计划</div>
 
-            <div v-for="task in todayTasks" :key="`${task.prescriptionId}_${task.time}`" class="patient-med-card">
+            <div v-for="task in todayTasks" :key="task.time" class="patient-med-card">
               <div class="patient-list-head">
-                <div class="patient-name">{{ task.medicationName }}</div>
-                <div class="patient-status">{{ task.time }}</div>
+                <div class="patient-title">{{ task.time }}</div>
+                <div class="patient-status">{{ task.medications.length }} 种药物</div>
               </div>
-              <div class="patient-meta">剂量：{{ task.dosage }}</div>
-              <div class="patient-meta">频次：{{ task.frequency }}</div>
-              <div class="patient-meta">医生：{{ task.doctorName }}</div>
-              <div class="patient-meta">说明：{{ task.instructions }}</div>
-              <div class="patient-actions">
-                <el-button type="primary" size="small" @click="openRecordDialog(task)">记录服药</el-button>
-                <el-button size="small" @click="openReminderDialog(task)">提醒设置</el-button>
+              <div class="patient-med-item-list">
+                <div v-for="(med, index) in task.medications" :key="`${task.time}_${index}`" class="patient-med-item">
+                  <div class="patient-name">{{ med.medicationName }}</div>
+                  <div class="patient-meta">{{ med.dosage }} - {{ med.frequency }} - {{ med.duration || '按医嘱' }}</div>
+                  <div class="patient-actions">
+                    <el-button type="primary" size="small" @click="openRecordDialog({ ...med, time: task.time })">记录服药</el-button>
+                  </div>
+                </div>
               </div>
             </div>
           </template>
@@ -484,12 +517,17 @@ onUnmounted(() => {
         </div>
 
         <div v-if="upcomingReminders.length === 0" class="patient-empty-text">暂无即将到来的提醒</div>
-        <div v-for="item in upcomingReminders" :key="`${item.prescriptionId}_${item.time}`" class="patient-reminder-item">
-          <div>
-            <div class="patient-name">{{ item.medicationName }}</div>
-            <div class="patient-meta">{{ item.dosage }} | {{ item.frequency }}</div>
+        <div v-for="item in upcomingReminders" :key="item.time" class="patient-reminder-card">
+          <div class="patient-list-head">
+            <div class="patient-title">{{ item.time }}</div>
+            <div class="patient-status">{{ item.medications.length }} 种药物</div>
           </div>
-          <div class="patient-accent">{{ item.time }}</div>
+          <div class="patient-med-item-list">
+            <div v-for="(med, index) in item.medications" :key="`${item.time}_${index}`" class="patient-med-item">
+              <div class="patient-name">{{ med.medicationName }}</div>
+              <div class="patient-meta">{{ med.dosage }} - {{ med.frequency }}</div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -555,16 +593,15 @@ onUnmounted(() => {
               <div class="patient-title">{{ prescription.title }}</div>
               <div class="patient-fee">{{ prescription.doctorName }}</div>
             </div>
-            <div class="patient-meta">就诊时间：{{ formatDateTime(prescription.visitDate) }}</div>
-            <div class="patient-meta">治疗方案：{{ prescription.treatmentPlan }}</div>
+            <div class="patient-meta">开具时间：{{ formatDateTime(prescription.visitDate || prescription.createdAt) }}</div>
             <div class="patient-meta">提醒时间：{{ prescription.reminderTimes.join('、') }}</div>
+            <div class="patient-meta">用药周期：{{ formatDate(prescription.startDate) }} 至 {{ formatDate(prescription.endDate) }}</div>
 
-            <div class="patient-med-item-list">
+            <div v-if="prescription.items && prescription.items.length > 0" class="patient-med-item-list">
               <div v-for="(item, index) in prescription.items" :key="`${prescription.prescriptionId}_${index}`" class="patient-med-item">
                 <div class="patient-name">{{ item.name }}</div>
-                <div class="patient-meta">剂量：{{ item.dosage }}</div>
-                <div class="patient-meta">频次：{{ item.frequency }}</div>
-                <div class="patient-meta">说明：{{ item.note }}</div>
+                <div class="patient-meta">{{ item.dosage }} - {{ item.frequency }} - {{ item.duration || '按医嘱' }}</div>
+                <div v-if="item.note" class="patient-meta">说明：{{ item.note }}</div>
               </div>
             </div>
 
@@ -655,12 +692,17 @@ onUnmounted(() => {
 }
 
 .patient-med-card,
+.patient-reminder-card,
 .patient-reminder-item,
 .patient-med-item {
   padding: 14px;
   border-radius: 16px;
   background: var(--patient-surface-strong);
   border: 1px solid var(--patient-border);
+}
+
+.patient-reminder-card {
+  margin-bottom: 10px;
 }
 
 .patient-reminder-item {

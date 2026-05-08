@@ -36,6 +36,12 @@ public class PrescriptionController {
         return ApiResponse.ok(medicationService.getPatientPrescriptions(patientId));
     }
 
+    @GetMapping("/patient/me")
+    public ApiResponse<List<PrescriptionDto>> getMyPrescriptions(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute(AuthInterceptor.REQ_ATTR_USER_ID);
+        return ApiResponse.ok(medicationService.getMyPrescriptions(userId));
+    }
+
     @GetMapping("/patient/{patientId}/adherence-stats")
     public ApiResponse<MedicationAdherenceStatsDto> getPatientAdherenceStats(HttpServletRequest request, @PathVariable Long patientId) {
         Long userId = (Long) request.getAttribute(AuthInterceptor.REQ_ATTR_USER_ID);

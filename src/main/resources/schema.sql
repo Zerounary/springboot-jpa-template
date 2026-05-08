@@ -614,23 +614,23 @@ CREATE TABLE IF NOT EXISTS medication_records (
 -- Insert sample medication data
 INSERT IGNORE INTO prescriptions (prescription_id, patient_id, doctor_id, title, treatment_plan, visit_date, start_date, end_date, instructions, status, reminder_times, created_at, updated_at)
 VALUES 
-('PRE001', 3, 2, 'upper respiratory infection treatment', 'Antibiotic therapy + symptomatic treatment', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY, NOW() + INTERVAL 7 DAY, 'Take after meals, complete the course', 'ACTIVE', '["08:00", "14:00", "20:00"]', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
-('PRE002', 4, 1, 'chronic gastritis treatment', 'Gastric mucosal protection + acid suppression', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY, NOW() + INTERVAL 21 DAY, 'Take 30 minutes before meals', 'ACTIVE', '["07:30", "19:30"]', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
+('PRE001', 3, 2, '上呼吸道感染治疗', '抗生素治疗 + 对症治疗', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY, NOW() + INTERVAL 7 DAY, '饭后服用，完成疗程', 'ACTIVE', '["08:00", "14:00", "20:00"]', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
+('PRE002', 4, 1, '慢性胃炎治疗', '胃黏膜保护 + 抑酸治疗', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY, NOW() + INTERVAL 21 DAY, '餐前30分钟服用', 'ACTIVE', '["07:30", "19:30"]', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
 
 INSERT IGNORE INTO prescription_items (prescription_id, medication_name, dosage, frequency, duration, note, quantity, unit, created_at, updated_at)
 VALUES 
-('PRE001', 'Amoxicillin Capsules', '0.5g', '3 times a day', '7 days', 'Take after meals', 21, 'capsules', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
-('PRE001', 'Bromhexine Tablets', '8mg', '3 times a day', '7 days', 'Take after meals', 21, 'tablets', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
-('PRE002', 'Omeprazole Enteric-coated Capsules', '20mg', '2 times a day', '21 days', 'Take 30 minutes before meals', 42, 'capsules', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY),
-('PRE002', 'Aluminum Magnesium Carbonate Tablets', '2 tablets', '3 times a day', '21 days', 'Chew and swallow after meals', 63, 'tablets', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
+('PRE001', '阿莫西林胶囊', '0.5g', '每日3次', '7天', '饭后服用', 21, '粒', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
+('PRE001', '溴己新片', '8mg', '每日3次', '7天', '饭后服用', 21, '片', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY),
+('PRE002', '奥美拉唑肠溶胶囊', '20mg', '每日2次', '21天', '餐前30分钟服用', 42, '粒', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY),
+('PRE002', '铝碳酸镁片', '2片', '每日3次', '21天', '饭后咀嚼吞服', 63, '片', NOW() - INTERVAL 15 DAY, NOW() - INTERVAL 15 DAY);
 
 INSERT IGNORE INTO medication_records (record_id, prescription_id, patient_id, medication_name, planned_time, taken_at, dosage, frequency, status, notes, created_at, updated_at)
 VALUES 
-('REC001', 'PRE001', 3, 'Amoxicillin Capsules', '2024-01-15 08:00:00', '2024-01-15 08:15:00', '0.5g', '3 times a day', 'TAKEN', 'Taken on time', '2024-01-15 08:15:00', '2024-01-15 08:15:00'),
-('REC002', 'PRE001', 3, 'Bromhexine Tablets', '2024-01-15 08:00:00', '2024-01-15 08:10:00', '8mg', '3 times a day', 'TAKEN', 'Taken on time', '2024-01-15 08:10:00', '2024-01-15 08:10:00'),
-('REC003', 'PRE001', 3, 'Amoxicillin Capsules', '2024-01-15 14:00:00', '2024-01-15 14:30:00', '0.5g', '3 times a day', 'TAKEN', 'Taken 30 minutes late', '2024-01-15 14:30:00', '2024-01-15 14:30:00'),
-('REC004', 'PRE002', 4, 'Omeprazole Enteric-coated Capsules', '2024-01-14 07:30:00', '2024-01-14 07:25:00', '20mg', '2 times a day', 'TAKEN', 'Taken 5 minutes early', '2024-01-14 07:25:00', '2024-01-14 07:25:00'),
-('REC005', 'PRE002', 4, 'Aluminum Magnesium Carbonate Tablets', '2024-01-14 08:00:00', NULL, '2 tablets', '3 times a day', 'MISSED', 'Forgot to take', '2024-01-14 20:00:00', '2024-01-14 20:00:00');
+('REC001', 'PRE001', 3, '阿莫西林胶囊', '2024-01-15 08:00:00', '2024-01-15 08:15:00', '0.5g', '每日3次', 'TAKEN', '按时服用', '2024-01-15 08:15:00', '2024-01-15 08:15:00'),
+('REC002', 'PRE001', 3, '溴己新片', '2024-01-15 08:00:00', '2024-01-15 08:10:00', '8mg', '每日3次', 'TAKEN', '按时服用', '2024-01-15 08:10:00', '2024-01-15 08:10:00'),
+('REC003', 'PRE001', 3, '阿莫西林胶囊', '2024-01-15 14:00:00', '2024-01-15 14:30:00', '0.5g', '每日3次', 'TAKEN', '延迟30分钟服用', '2024-01-15 14:30:00', '2024-01-15 14:30:00'),
+('REC004', 'PRE002', 4, '奥美拉唑肠溶胶囊', '2024-01-14 07:30:00', '2024-01-14 07:25:00', '20mg', '每日2次', 'TAKEN', '提前5分钟服用', '2024-01-14 07:25:00', '2024-01-14 07:25:00'),
+('REC005', 'PRE002', 4, '铝碳酸镁片', '2024-01-14 08:00:00', NULL, '2片', '每日3次', 'MISSED', '忘记服用', '2024-01-14 20:00:00', '2024-01-14 20:00:00');
 
 CREATE TABLE IF NOT EXISTS doctor_daily_appointment (
   id BIGINT NOT NULL AUTO_INCREMENT,

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -202,7 +203,7 @@ public class MedicationService {
             prescription.setStatus("ACTIVE");
 
             // Set default reminder times
-            List<String> defaultReminderTimes = List.of("08:00", "20:00");
+            List<String> defaultReminderTimes = Arrays.asList("08:00", "20:00");
             try {
                 prescription.setReminderTimes(objectMapper.writeValueAsString(defaultReminderTimes));
             } catch (JsonProcessingException e) {

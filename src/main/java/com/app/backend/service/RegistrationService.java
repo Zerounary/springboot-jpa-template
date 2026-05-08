@@ -89,6 +89,13 @@ public class RegistrationService {
             throw new BizException(400, "医生与科室不匹配");
         }
 
+        // Validate doctor's schedule
+        if (doctor.getSchedule() != null && !doctor.getSchedule().trim().isEmpty()) {
+            if (!isDoctorAvailable(doctor.getSchedule(), req.getScheduleDate(), req.getTimeSlot())) {
+                throw new BizException(400, "该医生在选定时间段不出诊");
+            }
+        }
+
         HospitalDepartment dept = departmentRepository.selectById(req.getDeptId());
         if (dept == null || (dept.getIsDeleted() != null && dept.getIsDeleted() != 0)) {
             throw new BizException(400, "科室不存在");
@@ -432,9 +439,62 @@ public class RegistrationService {
     }
 
     private String generateRegistrationNo() {
-        String ts = java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        int rnd = ThreadLocalRandom.current().nextInt(1000, 10000);
-        return "REG" + ts + rnd;
+        // Query the maximum registration number from the database
+        QueryWrapper<RegistrationRecord> qw = new QueryWrapper<>();
+        qw.orderByDesc("registration_id");
+        qw.last("LIMIT 1");
+        RegistrationRecord lastRecord = registrationRecordRepository.selectOne(qw);
+        
+        int nextId = 1;
+        if (lastRecord != null && lastRecord.getRegistrationNo() != null) {
+            // Extract the numeric part from registration_no (e.g., R000001 -> 1)
+            String lastNo = lastRecord.getRegistrationNo();
+            if (lastNo.startsWith("R")) {
+                try {
+                    nextId = Integer.parseInt(lastNo.substring(1)) + 1;
+                } catch (NumberFormatException e) {
+                    // If parsing fails, query the max ID
+                    QueryWrapper<RegistrationRecord> idQw = new QueryWrapper<>();
+                    idQw.select("MAX(registration_id) as max_id");
+                    RegistrationRecord maxIdRecord = registrationRecordRepository.selectOne(idQw);
+                    if (maxIdRecord != null && maxIdRecord.getRegistrationId() != null) {
+                        nextId = maxIdRecord.getRegistrationId().intValue() + 1;
+                    }
+                }
+            } else {
+                // Fallback to ID if format is different
+                nextId = lastRecord.getRegistrationId().intValue() + 1;
+            }
+        }
+        
+        // Format as R000001 (6 digits, zero-padded)
+        return String.format("R%06d", nextId);
+    }
+
+    private boolean isDoctorAvailable(String schedule, LocalDate scheduleDate, String timeSlot) {
+        // Parse schedule string (e.g., "周一、三、五上午" or "周一上午、周三下午")
+        // Get day of week in Chinese
+        String[] dayNames = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+        java.time.DayOfWeek dayOfWeek = scheduleDate.getDayOfWeek();
+        String dayName = dayNames[dayOfWeek.getValue() - 1]; // DayOfWeek.MONDAY = 1
+        
+        // Check if the schedule contains the day
+        if (!schedule.contains(dayName)) {
+            return false;
+        }
+        
+        // Check time slot
+        String normalizedSchedule = schedule.replace("、", "");
+        if (timeSlot != null) {
+            if (timeSlot.contains("上午") && !normalizedSchedule.contains("上午")) {
+                return false;
+            }
+            if (timeSlot.contains("下午") && !normalizedSchedule.contains("下午")) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     private RegistrationDto toDto(RegistrationRecord rr, PatientInfo patient, DoctorInfo doctor) {

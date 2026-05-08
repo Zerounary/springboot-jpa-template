@@ -4,6 +4,12 @@ import com.app.backend.dto.*;
 import com.app.backend.entity.MedicationRecord;
 import com.app.backend.entity.Prescription;
 import com.app.backend.entity.PrescriptionItem;
+import com.app.backend.entity.DoctorInfo;
+import com.app.backend.entity.PatientInfo;
+import com.app.backend.entity.User;
+import com.app.backend.repository.DoctorInfoRepository;
+import com.app.backend.repository.PatientInfoRepository;
+import com.app.backend.repository.UserRepository;
 import com.app.backend.repository.MedicationRecordRepository;
 import com.app.backend.repository.PrescriptionItemRepository;
 import com.app.backend.repository.PrescriptionRepository;
@@ -28,17 +34,25 @@ public class MedicationService {
     private final PrescriptionRepository prescriptionRepository;
     private final PrescriptionItemRepository prescriptionItemRepository;
     private final MedicationRecordRepository medicationRecordRepository;
+    private final DoctorInfoRepository doctorInfoRepository;
+    private final PatientInfoRepository patientInfoRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     public List<PrescriptionDto> getPatientPrescriptions(Long patientId) {
-        QueryWrapper<Prescription> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("patient_id", patientId)
-                   .eq("status", "ACTIVE")
-                   .orderByDesc("created_at");
-        
-        List<Prescription> prescriptions = prescriptionRepository.selectList(queryWrapper);
-        
-        return prescriptions.stream().map(this::convertToDto).collect(Collectors.toList());
+        try {
+            QueryWrapper<Prescription> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("patient_id", patientId)
+                       .eq("status", "ACTIVE")
+                       .orderByDesc("created_at");
+
+            List<Prescription> prescriptions = prescriptionRepository.selectList(queryWrapper);
+
+            return prescriptions.stream().map(this::convertToDto).collect(Collectors.toList());
+        } catch (Exception e) {
+            // If table doesn't exist or other error, return empty list
+            return new ArrayList<>();
+        }
     }
 
     public List<MedicationRecordDto> getMedicationRecords(Long patientId, String startDate, String endDate) {
@@ -118,10 +132,63 @@ public class MedicationService {
         return convertToDto(record);
     }
 
+    public PrescriptionDto createPrescription(PrescriptionCreateRequest request) {
+        try {
+            Prescription prescription = new Prescription();
+            prescription.setPrescriptionId(UUID.randomUUID().toString());
+            prescription.setRecordId(request.getRecordId());
+            prescription.setPatientId(request.getPatientId());
+            prescription.setDoctorId(request.getDoctorId());
+            prescription.setTitle(request.getTitle());
+            prescription.setTreatmentPlan(request.getTreatmentPlan());
+            prescription.setVisitDate(request.getVisitDate());
+            prescription.setStartDate(request.getStartDate());
+            prescription.setEndDate(request.getEndDate());
+            prescription.setInstructions(request.getInstructions());
+            prescription.setStatus("ACTIVE");
+
+            // Set default reminder times
+            List<String> defaultReminderTimes = List.of("08:00", "20:00");
+            try {
+                prescription.setReminderTimes(objectMapper.writeValueAsString(defaultReminderTimes));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to serialize reminder times", e);
+            }
+
+            prescription.setCreatedAt(LocalDateTime.now());
+            prescription.setUpdatedAt(LocalDateTime.now());
+
+            prescriptionRepository.insert(prescription);
+
+            // Create prescription items
+            if (request.getItems() != null && !request.getItems().isEmpty()) {
+                for (PrescriptionItemCreateRequest itemRequest : request.getItems()) {
+                    PrescriptionItem item = new PrescriptionItem();
+                    item.setPrescriptionId(prescription.getPrescriptionId());
+                    item.setMedicationName(itemRequest.getMedicationName());
+                    item.setDosage(itemRequest.getDosage());
+                    item.setFrequency(itemRequest.getFrequency());
+                    item.setDuration(itemRequest.getDuration());
+                    item.setNote(itemRequest.getNote());
+                    item.setQuantity(itemRequest.getQuantity());
+                    item.setUnit(itemRequest.getUnit());
+                    item.setCreatedAt(LocalDateTime.now());
+                    item.setUpdatedAt(LocalDateTime.now());
+                    prescriptionItemRepository.insert(item);
+                }
+            }
+
+            return convertToDto(prescription);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create prescription: " + e.getMessage() + ". Please ensure the prescriptions and prescription_items tables exist in the database.", e);
+        }
+    }
+
     public void updatePrescriptionReminders(String prescriptionId, PrescriptionUpdateRequest request) {
         QueryWrapper<Prescription> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("prescription_id", prescriptionId);
-        
+
         Prescription prescription = prescriptionRepository.selectOne(queryWrapper);
         if (prescription != null) {
             try {
@@ -135,10 +202,23 @@ public class MedicationService {
         }
     }
 
+    public void deletePrescription(String prescriptionId) {
+        // Delete prescription items first
+        QueryWrapper<PrescriptionItem> itemQuery = new QueryWrapper<>();
+        itemQuery.eq("prescription_id", prescriptionId);
+        prescriptionItemRepository.delete(itemQuery);
+
+        // Delete prescription
+        QueryWrapper<Prescription> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("prescription_id", prescriptionId);
+        prescriptionRepository.delete(queryWrapper);
+    }
+
     private PrescriptionDto convertToDto(Prescription prescription) {
         PrescriptionDto dto = new PrescriptionDto();
         dto.setId(prescription.getId());
         dto.setPrescriptionId(prescription.getPrescriptionId());
+        dto.setRecordId(prescription.getRecordId());
         dto.setPatientId(prescription.getPatientId());
         dto.setDoctorId(prescription.getDoctorId());
         dto.setTitle(prescription.getTitle());
@@ -151,6 +231,26 @@ public class MedicationService {
         dto.setReminderTimes(parseReminderTimes(prescription.getReminderTimes()));
         dto.setCreatedAt(prescription.getCreatedAt());
         dto.setUpdatedAt(prescription.getUpdatedAt());
+        
+        // Get doctor and patient names
+        if (prescription.getDoctorId() != null) {
+            DoctorInfo doctor = doctorInfoRepository.selectById(prescription.getDoctorId());
+            if (doctor != null && doctor.getUserId() != null) {
+                User user = userRepository.selectById(doctor.getUserId());
+                if (user != null) {
+                    dto.setDoctorName(user.getRealName() != null ? user.getRealName() : user.getUsername());
+                }
+            }
+        }
+        if (prescription.getPatientId() != null) {
+            PatientInfo patient = patientInfoRepository.selectById(prescription.getPatientId());
+            if (patient != null && patient.getUserId() != null) {
+                User user = userRepository.selectById(patient.getUserId());
+                if (user != null) {
+                    dto.setPatientName(user.getRealName() != null ? user.getRealName() : user.getUsername());
+                }
+            }
+        }
         
         // Get prescription items
         QueryWrapper<PrescriptionItem> itemQuery = new QueryWrapper<>();

@@ -35,6 +35,48 @@ const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref(null)
 
+const editDialogVisible = ref(false)
+const editFormLoading = ref(false)
+const editForm = reactive({
+  recordId: null,
+  patientId: null,
+  doctorId: null,
+  deptId: null,
+  registrationId: null,
+  visitDate: null,
+  chiefComplaint: '',
+  presentIllness: '',
+  pastHistory: '',
+  physicalExamination: '',
+  auxiliaryExamination: '',
+  diagnosis: '',
+  treatmentPlan: '',
+  recordStatus: 0,
+})
+
+const prescriptionItems = ref([])
+
+const statsDialogVisible = ref(false)
+const statsLoading = ref(false)
+const patientStats = ref(null)
+const patientPrescriptions = ref([])
+
+function addPrescriptionItem() {
+  prescriptionItems.value.push({
+    medicationName: '',
+    dosage: '',
+    frequency: '每日2次',
+    duration: '7天',
+    note: '',
+    quantity: 1,
+    unit: '盒',
+  })
+}
+
+function removePrescriptionItem(index) {
+  prescriptionItems.value.splice(index, 1)
+}
+
 function flattenDeptTree(list, out = [], prefix = '') {
   if (!Array.isArray(list)) return out
   for (const n of list) {
@@ -122,6 +164,131 @@ async function doDelete(row) {
   await http.delete(`/api/medical-records/${row.recordId}`)
   ElMessage.success('已删除')
   fetchPage()
+}
+
+async function openEdit(row) {
+  editFormLoading.value = true
+  try {
+    const record = await http.get(`/api/medical-records/${row.recordId}`)
+    editForm.recordId = record.recordId
+    editForm.patientId = record.patientId
+    editForm.doctorId = record.doctorId
+    editForm.deptId = record.deptId
+    editForm.registrationId = record.registrationId
+    editForm.visitDate = record.visitDate
+    editForm.chiefComplaint = record.chiefComplaint || ''
+    editForm.presentIllness = record.presentIllness || ''
+    editForm.pastHistory = record.pastHistory || ''
+    editForm.physicalExamination = record.physicalExamination || ''
+    editForm.auxiliaryExamination = record.auxiliaryExamination || ''
+    editForm.diagnosis = record.diagnosis || ''
+    editForm.treatmentPlan = record.treatmentPlan || ''
+    editForm.recordStatus = record.recordStatus || 0
+    
+    // Load existing prescriptions
+    try {
+      const prescriptions = await http.get(`/api/prescriptions/patient/${record.patientId}`)
+      if (prescriptions && prescriptions.length > 0) {
+        const recordPrescription = prescriptions.find(p => p.recordId === record.recordId)
+        if (recordPrescription && recordPrescription.items) {
+          prescriptionItems.value = recordPrescription.items.map(item => ({
+            medicationName: item.medicationName,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration: item.duration,
+            note: item.note,
+            quantity: item.quantity,
+            unit: item.unit,
+          }))
+        } else {
+          prescriptionItems.value = []
+        }
+      } else {
+        prescriptionItems.value = []
+      }
+    } catch {
+      prescriptionItems.value = []
+    }
+    
+    editDialogVisible.value = true
+  } finally {
+    editFormLoading.value = false
+  }
+}
+
+async function submitEdit() {
+  editFormLoading.value = true
+  try {
+    await http.put(`/api/medical-records/${editForm.recordId}`, editForm)
+    
+    // Handle prescription
+    if (prescriptionItems.value.length > 0) {
+      // Check if prescription already exists for this record and delete it
+      try {
+        const prescriptions = await http.get(`/api/prescriptions/patient/${editForm.patientId}`)
+        const existingPrescription = prescriptions.find(p => p.recordId === editForm.recordId)
+        
+        if (existingPrescription) {
+          await http.delete(`/api/prescriptions/${existingPrescription.prescriptionId}`)
+        }
+      } catch {
+        // Ignore error if no prescriptions exist or delete fails
+      }
+      
+      const prescriptionData = {
+        recordId: editForm.recordId,
+        patientId: editForm.patientId,
+        doctorId: editForm.doctorId,
+        title: editForm.diagnosis || '处方',
+        treatmentPlan: editForm.treatmentPlan,
+        visitDate: editForm.visitDate,
+        startDate: editForm.visitDate,
+        endDate: new Date(new Date(editForm.visitDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        instructions: '请遵医嘱服药',
+        items: prescriptionItems.value,
+      }
+      await http.post('/api/prescriptions', prescriptionData)
+      ElMessage.success('病例和处方更新成功')
+    } else {
+      // If no medication items, check if there's an existing prescription and delete it
+      try {
+        const prescriptions = await http.get(`/api/prescriptions/patient/${editForm.patientId}`)
+        const existingPrescription = prescriptions.find(p => p.recordId === editForm.recordId)
+        
+        if (existingPrescription) {
+          await http.delete(`/api/prescriptions/${existingPrescription.prescriptionId}`)
+        }
+      } catch {
+        // Ignore error
+      }
+      ElMessage.success('病例更新成功')
+    }
+    
+    editDialogVisible.value = false
+    prescriptionItems.value = []
+    fetchPage()
+  } catch (error) {
+    ElMessage.error(error?.message || '更新病例失败')
+  } finally {
+    editFormLoading.value = false
+  }
+}
+
+async function openPatientStats(row) {
+  statsDialogVisible.value = true
+  statsLoading.value = true
+  try {
+    const [stats, prescriptions] = await Promise.all([
+      http.get(`/api/prescriptions/patient/${row.patientId}/adherence-stats`),
+      http.get(`/api/prescriptions/patient/${row.patientId}`),
+    ])
+    patientStats.value = stats
+    patientPrescriptions.value = prescriptions || []
+  } catch (error) {
+    ElMessage.error(error?.message || '加载用药统计失败')
+  } finally {
+    statsLoading.value = false
+  }
 }
 
 onMounted(async () => {
@@ -253,17 +420,26 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column prop="diagnosis" label="诊断" min-width="220" show-overflow-tooltip />
         <el-table-column prop="updateTime" label="更新时间" width="170" />
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column label="操作" width="400" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openDetail(row)">详情</el-button>
             <el-button
               size="small"
               type="primary"
               :disabled="row.recordStatus === 1"
+              @click="openEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              size="small"
+              type="success"
+              :disabled="row.recordStatus === 1"
               @click="doComplete(row)"
             >
               完成
             </el-button>
+            <el-button size="small" type="info" @click="openPatientStats(row)">用药统计</el-button>
             <el-button v-if="isAdmin" size="small" type="danger" @click="doDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -313,6 +489,150 @@ onMounted(async () => {
     </div>
     <template #footer>
       <el-button @click="detailVisible = false">关闭</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="editDialogVisible" title="编辑病例" width="900px">
+    <el-form v-loading="editFormLoading" label-width="120px">
+      <el-form-item label="就诊时间">
+        <el-date-picker v-model="editForm.visitDate" type="datetime" style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="主诉">
+        <el-input v-model="editForm.chiefComplaint" type="textarea" :rows="3" />
+      </el-form-item>
+      <el-form-item label="现病史">
+        <el-input v-model="editForm.presentIllness" type="textarea" :rows="3" />
+      </el-form-item>
+      <el-form-item label="既往史">
+        <el-input v-model="editForm.pastHistory" type="textarea" :rows="3" />
+      </el-form-item>
+      <el-form-item label="体格检查">
+        <el-input v-model="editForm.physicalExamination" type="textarea" :rows="3" />
+      </el-form-item>
+      <el-form-item label="辅助检查">
+        <el-input v-model="editForm.auxiliaryExamination" type="textarea" :rows="3" />
+      </el-form-item>
+      <el-form-item label="诊断">
+        <el-input v-model="editForm.diagnosis" type="textarea" :rows="2" />
+      </el-form-item>
+      <el-form-item label="治疗方案">
+        <el-input v-model="editForm.treatmentPlan" type="textarea" :rows="3" />
+      </el-form-item>
+      
+      <el-divider>开具处方</el-divider>
+      
+      <div v-if="prescriptionItems.length === 0" style="text-align: center; padding: 20px; color: #999;">
+        暂无处方药物，点击下方按钮添加
+      </div>
+      
+      <div v-for="(item, index) in prescriptionItems" :key="index" style="margin-bottom: 16px; padding: 16px; border: 1px solid #eee; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-weight: bold;">药物 #{{ index + 1 }}</span>
+          <el-button type="danger" size="small" @click="removePrescriptionItem(index)">删除</el-button>
+        </div>
+        <el-row :gutter="12">
+          <el-col :span="12">
+            <el-form-item label="药物名称" label-width="80px">
+              <el-input v-model="item.medicationName" placeholder="请输入药物名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="剂量" label-width="60px">
+              <el-input v-model="item.dosage" placeholder="如：1片" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="12">
+          <el-col :span="8">
+            <el-form-item label="频次" label-width="60px">
+              <el-select v-model="item.frequency" style="width: 100%">
+                <el-option label="每日1次" value="每日1次" />
+                <el-option label="每日2次" value="每日2次" />
+                <el-option label="每日3次" value="每日3次" />
+                <el-option label="每日4次" value="每日4次" />
+                <el-option label="隔日1次" value="隔日1次" />
+                <el-option label="每周1次" value="每周1次" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="疗程" label-width="60px">
+              <el-input v-model="item.duration" placeholder="如：7天" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="数量" label-width="60px">
+              <el-input-number v-model="item.quantity" :min="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="12">
+          <el-col :span="12">
+            <el-form-item label="单位" label-width="60px">
+              <el-select v-model="item.unit" style="width: 100%">
+                <el-option label="盒" value="盒" />
+                <el-option label="瓶" value="瓶" />
+                <el-option label="袋" value="袋" />
+                <el-option label="支" value="支" />
+                <el-option label="片" value="片" />
+                <el-option label="粒" value="粒" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="备注" label-width="60px">
+              <el-input v-model="item.note" placeholder="用药说明" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
+      
+      <el-button type="primary" plain style="width: 100%" @click="addPrescriptionItem">+ 添加药物</el-button>
+    </el-form>
+    <template #footer>
+      <el-button @click="editDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitEdit" :loading="editFormLoading">保存病例和处方</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="statsDialogVisible" title="患者用药统计" width="700px">
+    <div v-loading="statsLoading">
+      <template v-if="patientStats">
+        <el-row :gutter="20" style="margin-bottom: 20px">
+          <el-col :span="8">
+            <el-statistic title="计划服药次数" :value="patientStats.expectedCount" />
+          </el-col>
+          <el-col :span="8">
+            <el-statistic title="实际服药次数" :value="patientStats.takenCount" />
+          </el-col>
+          <el-col :span="8">
+            <el-statistic title="依从率" :value="patientStats.rate" suffix="%" />
+          </el-col>
+        </el-row>
+        
+        <el-divider />
+        
+        <div style="margin-bottom: 20px">
+          <h4>处方列表</h4>
+          <div v-if="patientPrescriptions.length === 0" style="color: #999; padding: 20px 0;">
+            暂无处方
+          </div>
+          <div v-for="prescription in patientPrescriptions" :key="prescription.id" style="margin-bottom: 12px; padding: 12px; border: 1px solid #eee; border-radius: 8px;">
+            <div style="font-weight: bold; margin-bottom: 8px;">{{ prescription.title }}</div>
+            <div style="font-size: 13px; color: #666; margin-bottom: 4px;">医生：{{ prescription.doctorName }}</div>
+            <div style="font-size: 13px; color: #666; margin-bottom: 4px;">开具时间：{{ prescription.createdAt }}</div>
+            <div style="font-size: 13px; color: #666; margin-bottom: 8px;">提醒时间：{{ prescription.reminderTimes?.join('、') || '-' }}</div>
+            <div v-if="prescription.items && prescription.items.length > 0" style="margin-top: 8px;">
+              <div v-for="(item, index) in prescription.items" :key="index" style="font-size: 13px; padding: 4px 0; border-top: 1px dashed #eee;">
+                {{ item.medicationName }} - {{ item.dosage }} - {{ item.frequency }} - {{ item.duration }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+    <template #footer>
+      <el-button @click="statsDialogVisible = false">关闭</el-button>
     </template>
   </el-dialog>
 </template>

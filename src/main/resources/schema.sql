@@ -503,13 +503,13 @@ AND NOT EXISTS (SELECT 1 FROM patient_info WHERE user_id = u.id);
 INSERT INTO registration_record (registration_no, patient_id, doctor_id, dept_id, schedule_date, time_slot, registration_fee, pay_status, registration_status, visit_serial_number, remark, create_time, update_time, is_deleted)
 SELECT * FROM (
 SELECT 'R000001' as registration_no, 1 as patient_id, 1 as doctor_id, 1 as dept_id, CURDATE() as schedule_date, '上午' as time_slot, 50.00 as registration_fee, 1 as pay_status, 1 as registration_status, 15 as visit_serial_number, '复诊' as remark, NOW() as create_time, NOW() as update_time, 0 as is_deleted UNION ALL
-SELECT 'R000002', 2, 2, 3, CURDATE(), '下午', 45.00, 1, 2, 8, '初诊', NOW(), NOW(), 0 UNION ALL
+SELECT 'R000002', 2, 2, 3, CURDATE(), '下午', 45.00, 1, 1, 8, '初诊', NOW(), NOW(), 0 UNION ALL
 SELECT 'R000003', 3, 1, 1, CURDATE() + INTERVAL 1 DAY, '上午', 50.00, 0, 0, NULL, '初诊', NOW(), NOW(), 0 UNION ALL
-SELECT 'R000004', 4, 2, 3, CURDATE() + INTERVAL 1 DAY, '下午', 45.00, 1, 1, 12, '复诊', NOW(), NOW(), 0 UNION ALL
+SELECT 'R000004', 4, 2, 3, CURDATE() + INTERVAL 1 DAY, '下午', 45.00, 1, 0, NULL, '复诊', NOW(), NOW(), 0 UNION ALL
 SELECT 'R000005', 1, 1, 1, CURDATE() + INTERVAL 2 DAY, '上午', 50.00, 0, 0, NULL, '初诊', NOW(), NOW(), 0 UNION ALL
-SELECT 'R000006', 2, 2, 3, CURDATE() + INTERVAL 2 DAY, '下午', 45.00, 1, 2, 20, '复诊', NOW(), NOW(), 0 UNION ALL
+SELECT 'R000006', 2, 2, 3, CURDATE() + INTERVAL 2 DAY, '下午', 45.00, 1, 0, NULL, '复诊', NOW(), NOW(), 0 UNION ALL
 SELECT 'R000007', 3, 1, 1, CURDATE() + INTERVAL 3 DAY, '上午', 50.00, 0, 0, NULL, '初诊', NOW(), NOW(), 0 UNION ALL
-SELECT 'R000008', 4, 2, 3, CURDATE() + INTERVAL 3 DAY, '下午', 45.00, 1, 1, 25, '复诊', NOW(), NOW(), 0
+SELECT 'R000008', 4, 2, 3, CURDATE() + INTERVAL 3 DAY, '下午', 45.00, 1, 0, NULL, '复诊', NOW(), NOW(), 0
 ) AS reg_data
 WHERE NOT EXISTS (SELECT 1 FROM registration_record);
 
@@ -544,9 +544,14 @@ VALUES
 ('专家门诊时间调整通知', '门诊部', NULL, '李明主任医师门诊时间调整为周一、三、五上午，王芳副主任医师门诊时间调整为周二、四上午，请患者合理安排就诊时间。', 45, 0, 1, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, NOW() - INTERVAL 1 DAY, 0);
 
 -- Medication Management Tables
+-- Add record_id column if table already exists (for backward compatibility)
+ALTER TABLE prescriptions ADD COLUMN record_id BIGINT AFTER prescription_id;
+ALTER TABLE prescriptions ADD INDEX idx_prescriptions_record_id (record_id);
+
 CREATE TABLE IF NOT EXISTS prescriptions (
   id BIGINT NOT NULL AUTO_INCREMENT,
   prescription_id VARCHAR(64) NOT NULL,
+  record_id BIGINT,
   patient_id BIGINT NOT NULL,
   doctor_id BIGINT NOT NULL,
   title VARCHAR(255) NOT NULL,
@@ -563,6 +568,7 @@ CREATE TABLE IF NOT EXISTS prescriptions (
   UNIQUE KEY uk_prescriptions_id (prescription_id),
   KEY idx_prescriptions_patient_id (patient_id),
   KEY idx_prescriptions_doctor_id (doctor_id),
+  KEY idx_prescriptions_record_id (record_id),
   FOREIGN KEY (patient_id) REFERENCES users(id),
   FOREIGN KEY (doctor_id) REFERENCES users(id)
 );

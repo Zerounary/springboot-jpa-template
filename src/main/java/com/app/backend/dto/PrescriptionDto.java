@@ -10,6 +10,7 @@ import java.util.List;
 public class PrescriptionDto {
     private Long id;
     private String prescriptionId;
+    private Long recordId;
     private Long patientId;
     private Long doctorId;
     private String title;

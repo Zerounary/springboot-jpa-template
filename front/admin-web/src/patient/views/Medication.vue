@@ -114,50 +114,84 @@ function isPrescriptionActiveOn(prescription, date) {
 async function loadPrescriptions() {
   loading.value = true
   try {
-    const listRes = await http.get('/api/medical-records', {
-      params: {
-        page: 0,
-        size: 30,
-        recordStatus: 1,
-      },
-    })
-
-    const rows = listRes.records || []
-    const details = await Promise.all(
-      rows.map(async (item) => {
-        try {
-          return await http.get(`/api/medical-records/${item.recordId}`)
-        } catch {
-          return item
-        }
-      }),
-    )
-
+    // First try to load real prescriptions from the API
+    const prescriptionRes = await http.get('/api/patient/prescriptions')
     const reminderMap = readJson(userStorageKey('patient_medication_reminders'), {})
 
-    prescriptions.value = details
-      .filter((item) => item?.treatmentPlan || item?.diagnosis)
-      .map((item) => {
-        const items = parseMedicationItems(item.treatmentPlan || item.diagnosis)
-        const first = items[0]
-        const savedTimes = reminderMap[item.recordId]
+    if (prescriptionRes && prescriptionRes.length > 0) {
+      // Use real prescription data
+      prescriptions.value = prescriptionRes.map((item) => {
+        const firstItem = item.items?.[0] || {}
+        const savedTimes = reminderMap[item.prescriptionId]
+        const items = item.items?.map((i) => ({
+          name: i.medicationName,
+          dosage: i.dosage,
+          frequency: i.frequency,
+          note: i.note,
+        })) || []
+
         return {
-          prescriptionId: String(item.recordId),
+          prescriptionId: item.prescriptionId,
           recordId: item.recordId,
-          title: item.diagnosis || '治疗方案',
-          doctorName: item.doctorRealName || '医生',
+          title: item.title || '处方',
+          doctorName: item.doctorName || '医生',
           visitDate: item.visitDate,
-          startDate: formatDate(item.visitDate || new Date()),
-          endDate: formatDate(new Date(new Date(item.visitDate || Date.now()).getTime() + 6 * 24 * 60 * 60 * 1000)),
-          treatmentPlan: item.treatmentPlan || '请遵医嘱执行当前治疗方案。',
-          medicationName: first.name,
-          dosage: first.dosage,
-          frequency: first.frequency,
-          instructions: first.note,
+          startDate: formatDate(item.startDate || new Date()),
+          endDate: formatDate(item.endDate || new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)),
+          treatmentPlan: item.treatmentPlan || item.instructions || '请遵医嘱服药',
+          medicationName: firstItem.medicationName || '药物',
+          dosage: firstItem.dosage || '按医嘱',
+          frequency: firstItem.frequency || '每日2次',
+          instructions: firstItem.note || '',
           items,
-          reminderTimes: Array.isArray(savedTimes) && savedTimes.length > 0 ? savedTimes : defaultReminderTimes(first.frequency),
+          reminderTimes: Array.isArray(savedTimes) && savedTimes.length > 0 ? savedTimes : (item.reminderTimes || defaultReminderTimes(firstItem.frequency)),
         }
       })
+    } else {
+      // Fallback to parsing from medical records
+      const listRes = await http.get('/api/medical-records', {
+        params: {
+          page: 0,
+          size: 30,
+          recordStatus: 1,
+        },
+      })
+
+      const rows = listRes.records || []
+      const details = await Promise.all(
+        rows.map(async (item) => {
+          try {
+            return await http.get(`/api/medical-records/${item.recordId}`)
+          } catch {
+            return item
+          }
+        }),
+      )
+
+      prescriptions.value = details
+        .filter((item) => item?.treatmentPlan || item?.diagnosis)
+        .map((item) => {
+          const items = parseMedicationItems(item.treatmentPlan || item.diagnosis)
+          const first = items[0]
+          const savedTimes = reminderMap[item.recordId]
+          return {
+            prescriptionId: String(item.recordId),
+            recordId: item.recordId,
+            title: item.diagnosis || '治疗方案',
+            doctorName: item.doctorRealName || '医生',
+            visitDate: item.visitDate,
+            startDate: formatDate(item.visitDate || new Date()),
+            endDate: formatDate(new Date(new Date(item.visitDate || Date.now()).getTime() + 6 * 24 * 60 * 60 * 1000)),
+            treatmentPlan: item.treatmentPlan || '请遵医嘱执行当前治疗方案。',
+            medicationName: first.name,
+            dosage: first.dosage,
+            frequency: first.frequency,
+            instructions: first.note,
+            items,
+            reminderTimes: Array.isArray(savedTimes) && savedTimes.length > 0 ? savedTimes : defaultReminderTimes(first.frequency),
+          }
+        })
+    }
   } catch (e) {
     ElMessage.error(e?.message || '加载用药方案失败')
   } finally {

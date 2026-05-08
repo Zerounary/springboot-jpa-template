@@ -267,8 +267,10 @@ public class MedicalRecordService {
             doctorId = null;
         } else if (operator.getRoleType() == 2) {
             DoctorInfo di = getDoctorByUserId(operatorUserId);
-            doctorId = di.getDoctorId();
-            patientId = null;
+            // Allow doctors to query specific patient's records, otherwise filter by current doctor
+            if (patientId == null) {
+                doctorId = di.getDoctorId();
+            }
         }
 
         Page<MedicalRecord> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));

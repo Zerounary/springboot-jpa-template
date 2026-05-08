@@ -19,6 +19,9 @@ public class Prescription {
     @TableField("prescription_id")
     private String prescriptionId;
 
+    @TableField("record_id")
+    private Long recordId;
+
     @TableField("patient_id")
     private Long patientId;
 

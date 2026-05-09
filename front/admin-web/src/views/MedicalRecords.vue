@@ -274,22 +274,22 @@ async function submitEdit() {
   }
 }
 
-async function openPatientStats(row) {
-  statsDialogVisible.value = true
-  statsLoading.value = true
-  try {
-    const [stats, prescriptions] = await Promise.all([
-      http.get(`/api/prescriptions/patient/${row.patientId}/adherence-stats`),
-      http.get(`/api/prescriptions/patient/${row.patientId}`),
-    ])
-    patientStats.value = stats
-    patientPrescriptions.value = prescriptions || []
-  } catch (error) {
-    ElMessage.error(error?.message || '加载用药统计失败')
-  } finally {
-    statsLoading.value = false
-  }
-}
+// async function openPatientStats(row) {
+//   statsDialogVisible.value = true
+//   statsLoading.value = true
+//   try {
+//     const [stats, prescriptions] = await Promise.all([
+//       http.get(`/api/prescriptions/patient/${row.patientId}/adherence-stats`),
+//       http.get(`/api/prescriptions/patient/${row.patientId}`),
+//     ])
+//     patientStats.value = stats
+//     patientPrescriptions.value = prescriptions || []
+//   } catch (error) {
+//     ElMessage.error(error?.message || '加载用药统计失败')
+//   } finally {
+//     statsLoading.value = false
+//   }
+// }
 
 onMounted(async () => {
   if (!auth.me) {
@@ -439,7 +439,7 @@ onMounted(async () => {
             >
               完成
             </el-button>
-            <el-button size="small" type="info" @click="openPatientStats(row)">用药统计</el-button>
+            <!-- <el-button size="small" type="info" @click="openPatientStats(row)">用药统计</el-button> -->
             <el-button v-if="isAdmin" size="small" type="danger" @click="doDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -595,7 +595,7 @@ onMounted(async () => {
     </template>
   </el-dialog>
 
-  <el-dialog v-model="statsDialogVisible" title="患者用药统计" width="700px">
+  <!-- <el-dialog v-model="statsDialogVisible" title="患者用药统计" width="700px">
     <div v-loading="statsLoading">
       <template v-if="patientStats">
         <el-row :gutter="20" style="margin-bottom: 20px">
@@ -634,5 +634,5 @@ onMounted(async () => {
     <template #footer>
       <el-button @click="statsDialogVisible = false">关闭</el-button>
     </template>
-  </el-dialog>
+  </el-dialog> -->
 </template>

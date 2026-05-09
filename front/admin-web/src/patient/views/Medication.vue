@@ -278,31 +278,31 @@ const calendarMap = computed(() => {
   return map
 })
 
-const adherenceStats = computed(() => {
-  const end = new Date()
-  end.setHours(23, 59, 59, 999)
-  const start = new Date()
-  start.setDate(start.getDate() - 29)
-  start.setHours(0, 0, 0, 0)
+// const adherenceStats = computed(() => {
+//   const end = new Date()
+//   end.setHours(23, 59, 59, 999)
+//   const start = new Date()
+//   start.setDate(start.getDate() - 29)
+//   start.setHours(0, 0, 0, 0)
 
-  let expectedCount = 0
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    for (const prescription of prescriptions.value) {
-      if (isPrescriptionActiveOn(prescription, d)) {
-        // Count each medication item for each reminder time
-        expectedCount += prescription.reminderTimes.length * prescription.items.length
-      }
-    }
-  }
+//   let expectedCount = 0
+//   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+//     for (const prescription of prescriptions.value) {
+//       if (isPrescriptionActiveOn(prescription, d)) {
+//         // Count each medication item for each reminder time
+//         expectedCount += prescription.reminderTimes.length * prescription.items.length
+//       }
+//     }
+//   }
 
-  const takenCount = medicationRecords.value.filter((item) => {
-    const time = new Date(item.takenAt)
-    return item.status === 'taken' && time >= start && time <= end
-  }).length
-  const missedCount = Math.max(expectedCount - takenCount, 0)
-  const rate = expectedCount > 0 ? Math.round((takenCount / expectedCount) * 100) : 0
-  return { expectedCount, takenCount, missedCount, rate }
-})
+//   const takenCount = medicationRecords.value.filter((item) => {
+//     const time = new Date(item.takenAt)
+//     return item.status === 'taken' && time >= start && time <= end
+//   }).length
+//   const missedCount = Math.max(expectedCount - takenCount, 0)
+//   const rate = expectedCount > 0 ? Math.round((takenCount / expectedCount) * 100) : 0
+//   return { expectedCount, takenCount, missedCount, rate }
+// })
 
 const overviewCards = computed(() => [
   { 
@@ -312,8 +312,8 @@ const overviewCards = computed(() => [
     icon: FirstAidKit 
   },
   { label: '近期提醒', value: upcomingReminders.value.length, desc: '未来 6 小时内待提醒', icon: AlarmClock },
-  { label: '30 天计划', value: adherenceStats.value.expectedCount, desc: '依从性统计基准次数', icon: DataAnalysis },
-  { label: '依从率', value: `${adherenceStats.value.rate}%`, desc: '近 30 天执行完成情况', icon: Opportunity },
+  // { label: '30 天计划', value: adherenceStats.value.expectedCount, desc: '依从性统计基准次数', icon: DataAnalysis },
+  // { label: '依从率', value: `${adherenceStats.value.rate}%`, desc: '近 30 天执行完成情况', icon: Opportunity },
 ])
 
 function ensureChart() {
@@ -324,32 +324,32 @@ function ensureChart() {
   return chart
 }
 
-function renderChart() {
-  const instance = ensureChart()
-  if (!instance) return
-  const stats = adherenceStats.value
-  instance.setOption({
-    tooltip: { trigger: 'item' },
-    grid: { left: 24, right: 24, top: 40, bottom: 20, containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: ['已服用', '漏服', '计划总次数'],
-      axisTick: { show: false },
-    },
-    yAxis: { type: 'value' },
-    series: [
-      {
-        type: 'bar',
-        barWidth: 34,
-        data: [stats.takenCount, stats.missedCount, stats.expectedCount],
-        itemStyle: {
-          color: ({ dataIndex }) => ['#2f7cff', '#f59e0b', '#94a3b8'][dataIndex],
-          borderRadius: [8, 8, 0, 0],
-        },
-      },
-    ],
-  })
-}
+// function renderChart() {
+//   const instance = ensureChart()
+//   if (!instance) return
+//   const stats = adherenceStats.value
+//   instance.setOption({
+//     tooltip: { trigger: 'item' },
+//     grid: { left: 24, right: 24, top: 40, bottom: 20, containLabel: true },
+//     xAxis: {
+//       type: 'category',
+//       data: ['已服用', '漏服', '计划总次数'],
+//       axisTick: { show: false },
+//     },
+//     yAxis: { type: 'value' },
+//     series: [
+//       {
+//         type: 'bar',
+//         barWidth: 34,
+//         data: [stats.takenCount, stats.missedCount, stats.expectedCount],
+//         itemStyle: {
+//           color: ({ dataIndex }) => ['#2f7cff', '#f59e0b', '#94a3b8'][dataIndex],
+//           borderRadius: [8, 8, 0, 0],
+//         },
+//       },
+//     ],
+//   })
+// }
 
 function openReminderDialog(prescription) {
   reminderForm.prescriptionId = prescription.prescriptionId
@@ -450,14 +450,14 @@ onUnmounted(() => {
     <section class="patient-hero-card">
       <div class="patient-hero-card__eyebrow">用药管理</div>
       <div class="patient-hero-card__title">处方查看、提醒与记录集中管理</div>
-      <div class="patient-hero-card__desc">当前版本先基于病历治疗方案生成可执行的用药计划，帮助你减少漏服、错服风险。</div>
+      <div class="patient-hero-card__desc">当前版本先基于病历治疗方案生成可执行的用药计划，帮助你管理用药记录。</div>
     </section>
 
     <section class="patient-panel-card">
       <div class="patient-section-head">
         <div>
           <div class="patient-section-title">核心概览</div>
-          <div class="patient-section-subtitle">今日计划、提醒与 30 天依从性一眼可见</div>
+          <div class="patient-section-subtitle">今日计划与提醒一目了然</div>
         </div>
       </div>
       <div class="patient-kpi-grid">
@@ -551,7 +551,7 @@ onUnmounted(() => {
         </el-calendar>
       </section>
 
-      <section class="patient-panel-card">
+      <!-- <section class="patient-panel-card">
         <div class="patient-section-head">
           <div>
             <div class="patient-section-title">服药依从性统计</div>
@@ -572,7 +572,7 @@ onUnmounted(() => {
             <div class="patient-stats-item__value">{{ adherenceStats.missedCount }}</div>
           </div>
         </div>
-      </section>
+      </section> -->
     </div>
 
     <section class="patient-panel-card">
@@ -618,7 +618,7 @@ onUnmounted(() => {
       <div class="patient-section-head">
         <div>
           <div class="patient-section-title">用药记录</div>
-          <div class="patient-section-subtitle">本地保存患者服药记录，可用于日历和依从性统计</div>
+          <div class="patient-section-subtitle">本地保存患者服药记录，可用于日历查看</div>
         </div>
         <div class="patient-accent">{{ medicationRecords.length }} 条</div>
       </div>

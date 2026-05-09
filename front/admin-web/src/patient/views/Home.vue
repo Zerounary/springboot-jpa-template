@@ -28,7 +28,7 @@ const quickEntries = [
   { label: '去挂号', title: '在线预约', desc: '选择日期后快速完成挂号', icon: Calendar, path: '/patient/registrations' },
   { label: '查病历', title: '病例记录', desc: '快速查阅诊断、主诉与治疗方案', icon: Document, path: '/patient/medical-records' },
   { label: '做记录', title: '健康监测', desc: '追踪血压血糖和体重趋势', icon: DataAnalysis, path: '/patient/health' },
-  { label: '管用药', title: '用药管理', desc: '查看处方、提醒和服药依从性', icon: FirstAidKit, path: '/patient/medication' },
+  { label: '管用药', title: '用药管理', desc: '查看处方、提醒和服药记录', icon: FirstAidKit, path: '/patient/medication' },
 ]
 
 const overviewCards = computed(() => {

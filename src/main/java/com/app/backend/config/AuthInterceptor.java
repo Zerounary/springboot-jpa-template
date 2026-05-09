@@ -10,6 +10,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class AuthInterceptor implements HandlerInterceptor {
 
     public static final String REQ_ATTR_USER_ID = "AUTH_USER_ID";
+    public static final String REQ_ATTR_ROLE_TYPE = "AUTH_ROLE_TYPE";
 
     private final JwtService jwtService;
 
@@ -56,7 +57,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             throw new BizException(401, "未登录");
         }
 
+        Integer roleType = jwt.getClaim("rt").asInt();
+
         request.setAttribute(REQ_ATTR_USER_ID, userId);
+        request.setAttribute(REQ_ATTR_ROLE_TYPE, roleType);
         return true;
     }
 }

@@ -30,7 +30,7 @@ public class JwtService {
         this.verifier = JWT.require(this.algorithm).withIssuer(this.issuer).build();
     }
 
-    public String createToken(Long userId, String username) {
+    public String createToken(Long userId, String username, Integer roleType) {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(expireSeconds);
         return JWT.create()
@@ -39,6 +39,7 @@ public class JwtService {
                 .withExpiresAt(Date.from(exp))
                 .withClaim("uid", userId)
                 .withClaim("un", username)
+                .withClaim("rt", roleType)
                 .sign(algorithm);
     }
 

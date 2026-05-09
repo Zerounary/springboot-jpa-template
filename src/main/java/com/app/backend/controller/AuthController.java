@@ -43,9 +43,10 @@ public class AuthController {
     @GetMapping("/me")
     public ApiResponse<UserDto> me(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute(AuthInterceptor.REQ_ATTR_USER_ID);
+        Integer roleType = (Integer) request.getAttribute(AuthInterceptor.REQ_ATTR_ROLE_TYPE);
         if (userId == null) {
             throw new BizException(401, "未登录");
         }
-        return ApiResponse.ok(authService.currentUser(userId));
+        return ApiResponse.ok(authService.currentUser(userId, roleType));
     }
 }

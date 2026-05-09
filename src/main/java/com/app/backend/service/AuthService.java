@@ -40,7 +40,7 @@ public class AuthService {
     @Transactional
     public String login(LoginRequest req) {
         Integer roleType = req.getRoleType();
-        
+
         if (roleType == 1) {
             // Admin login using users table
             User user = userService.findByUsername(req.getUsername())
@@ -48,7 +48,7 @@ public class AuthService {
             if (!passwordService.matches(req.getPassword(), user.getPasswordHash())) {
                 throw new BizException(400, "用户名或密码错误");
             }
-            return jwtService.createToken(user.getId(), user.getUsername());
+            return jwtService.createToken(user.getId(), user.getUsername(), roleType);
         } else if (roleType == 2) {
             // Doctor login using doctor_info table
             QueryWrapper<DoctorInfo> queryWrapper = new QueryWrapper<>();
@@ -60,7 +60,7 @@ public class AuthService {
             if (!passwordService.matches(req.getPassword(), doctor.getPasswordHash())) {
                 throw new BizException(400, "用户名或密码错误");
             }
-            return jwtService.createToken(doctor.getDoctorId(), doctor.getUsername());
+            return jwtService.createToken(doctor.getDoctorId(), doctor.getUsername(), roleType);
         } else if (roleType == 3) {
             // Patient login using patient_info table
             QueryWrapper<PatientInfo> queryWrapper = new QueryWrapper<>();
@@ -72,18 +72,58 @@ public class AuthService {
             if (!passwordService.matches(req.getPassword(), patient.getPasswordHash())) {
                 throw new BizException(400, "用户名或密码错误");
             }
-            return jwtService.createToken(patient.getPatientId(), patient.getUsername());
+            return jwtService.createToken(patient.getPatientId(), patient.getUsername(), roleType);
         } else {
             throw new BizException(400, "无效的角色类型");
         }
     }
 
     @Transactional(readOnly = true)
-    public UserDto currentUser(Long userId) {
+    public UserDto currentUser(Long userId, Integer roleType) {
         if (userId == null) {
             throw new BizException(401, "未登录");
         }
-        return userService.detail(userId);
+
+        if (roleType == null) {
+            throw new BizException(401, "角色类型缺失");
+        }
+
+        if (roleType == 1) {
+            // Admin - query from users table
+            return userService.detail(userId);
+        } else if (roleType == 2) {
+            // Doctor - query from doctor_info table
+            QueryWrapper<DoctorInfo> doctorQuery = new QueryWrapper<>();
+            doctorQuery.eq("doctor_id", userId);
+            DoctorInfo doctor = doctorInfoRepository.selectOne(doctorQuery);
+            if (doctor == null) {
+                throw new BizException(404, "医生不存在");
+            }
+            UserDto dto = new UserDto();
+            dto.setId(doctor.getDoctorId());
+            dto.setUsername(doctor.getUsername());
+            dto.setRealName(doctor.getRealName());
+            dto.setRoleType(2);
+            dto.setStatus(1);
+            return dto;
+        } else if (roleType == 3) {
+            // Patient - query from patient_info table
+            QueryWrapper<PatientInfo> patientQuery = new QueryWrapper<>();
+            patientQuery.eq("patient_id", userId);
+            PatientInfo patient = patientInfoRepository.selectOne(patientQuery);
+            if (patient == null) {
+                throw new BizException(404, "患者不存在");
+            }
+            UserDto dto = new UserDto();
+            dto.setId(patient.getPatientId());
+            dto.setUsername(patient.getUsername());
+            dto.setRealName(patient.getRealName());
+            dto.setRoleType(3);
+            dto.setStatus(1);
+            return dto;
+        } else {
+            throw new BizException(400, "无效的角色类型");
+        }
     }
 
     private UserCreateRequest toUserCreateRequest(RegisterRequest req) {

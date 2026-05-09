@@ -336,49 +336,11 @@ public class RegistrationService {
             }
         }
 
-        List<Long> userIds = new ArrayList<>();
-        for (PatientInfo pi : patientMap.values()) {
-            if (pi != null) {
-                userIds.add(pi.getUserId());
-            }
-        }
-        for (DoctorInfo di : doctorMap.values()) {
-            if (di != null) {
-                userIds.add(di.getUserId());
-            }
-        }
-
-        Map<Long, User> userMap = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            List<User> users = userRepository.selectBatchIds(userIds);
-            if (users != null) {
-                for (User u : users) {
-                    userMap.put(u.getId(), u);
-                }
-            }
-        }
-
         List<RegistrationDto> outRecords = new ArrayList<>();
         for (RegistrationRecord rr : records) {
             PatientInfo pi = patientMap.get(rr.getPatientId());
             DoctorInfo di = doctorMap.get(rr.getDoctorId());
             RegistrationDto dto = toDto(rr, pi, di);
-            if (pi != null) {
-                User pu = userMap.get(pi.getUserId());
-                if (pu != null) {
-                    dto.setPatientUserId(pu.getId());
-                    dto.setPatientRealName(pu.getRealName());
-                    dto.setPatientPhone(pu.getPhone());
-                }
-            }
-            if (di != null) {
-                User du = userMap.get(di.getUserId());
-                if (du != null) {
-                    dto.setDoctorUserId(du.getId());
-                    dto.setDoctorRealName(du.getRealName());
-                    dto.setDoctorPhone(du.getPhone());
-                }
-            }
             outRecords.add(dto);
         }
 
@@ -515,10 +477,14 @@ public class RegistrationService {
         dto.setUpdateTime(rr.getUpdateTime());
 
         if (patient != null) {
-            dto.setPatientUserId(patient.getUserId());
+            dto.setPatientRealName(patient.getRealName());
         }
         if (doctor != null) {
-            dto.setDoctorUserId(doctor.getUserId());
+            dto.setDoctorRealName(doctor.getRealName());
+        }
+        HospitalDepartment dept = departmentRepository.selectById(rr.getDeptId());
+        if (dept != null) {
+            dto.setDeptName(dept.getDeptName());
         }
 
         return dto;

@@ -210,24 +210,14 @@ public class PatientStatisticsService {
             : doctorInfoRepository.selectList(new QueryWrapper<DoctorInfo>().in("doctor_id", doctorIds).eq("is_deleted", 0)).stream()
                 .collect(Collectors.toMap(DoctorInfo::getDoctorId, item -> item));
 
-        Set<Long> userIds = doctorMap.values().stream()
-            .map(DoctorInfo::getUserId)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
-        Map<Long, User> userMap = userIds.isEmpty()
-            ? Collections.emptyMap()
-            : userRepository.selectList(new QueryWrapper<User>().in("id", userIds).eq("is_deleted", 0)).stream()
-                .collect(Collectors.toMap(User::getId, item -> item));
-
         return records.stream().map(record -> {
             DoctorInfo doctor = doctorMap.get(record.getDoctorId());
-            User user = doctor == null ? null : userMap.get(doctor.getUserId());
             Map<String, Object> item = new HashMap<>();
             item.put("recordId", record.getRecordId());
             item.put("visitDate", record.getVisitDate());
             item.put("diagnosis", record.getDiagnosis());
             item.put("jobTitle", doctor != null ? doctor.getJobTitle() : null);
-            item.put("doctorName", user != null ? user.getRealName() : null);
+            item.put("doctorName", doctor != null ? doctor.getRealName() : null);
             return item;
         }).collect(Collectors.toList());
     }

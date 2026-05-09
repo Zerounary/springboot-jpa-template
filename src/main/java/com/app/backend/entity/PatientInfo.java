@@ -17,6 +17,14 @@ public class PatientInfo {
 
     private Long userId;
 
+    private String username;
+
+    @TableField("password_hash")
+    private String passwordHash;
+
+    @TableField("real_name")
+    private String realName;
+
     private LocalDate birthDate;
 
     private Integer age;
@@ -58,6 +66,30 @@ public class PatientInfo {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
     }
 
     public LocalDate getBirthDate() {

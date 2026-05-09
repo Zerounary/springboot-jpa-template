@@ -30,7 +30,7 @@ const editForm = reactive({
   phone: '',
   idCard: '',
   gender: null,
-  roleType: 3,
+  roleType: 1,
   status: 1,
   avatar: '',
 })
@@ -81,7 +81,7 @@ function openCreate() {
   editForm.phone = ''
   editForm.idCard = ''
   editForm.gender = null
-  editForm.roleType = 3
+  editForm.roleType = 1
   editForm.status = 1
   editForm.avatar = ''
   editVisible.value = true
@@ -102,7 +102,7 @@ async function openEdit(row) {
     editForm.phone = d.phone || ''
     editForm.idCard = d.idCard || ''
     editForm.gender = d.gender ?? null
-    editForm.roleType = d.roleType ?? 3
+    editForm.roleType = 1
     editForm.status = d.status ?? 1
     editForm.avatar = d.avatar || ''
   } finally {
@@ -125,7 +125,7 @@ async function submitEdit() {
         phone: editForm.phone || null,
         idCard: editForm.idCard || null,
         gender: editForm.gender ?? null,
-        roleType: editForm.roleType ?? 3,
+        roleType: 1,
         status: editForm.status ?? 1,
         avatar: editForm.avatar || null,
       })
@@ -139,7 +139,6 @@ async function submitEdit() {
         phone: editForm.phone || null,
         idCard: editForm.idCard || null,
         gender: editForm.gender ?? null,
-        roleType: editForm.roleType ?? null,
         status: editForm.status ?? null,
         avatar: editForm.avatar || null,
       })
@@ -178,10 +177,10 @@ onMounted(async () => {
     <section class="admin-section">
       <div class="admin-section__head">
         <div>
-          <div class="admin-section__title">用户管理</div>
-          <div class="admin-section__subtitle">统一管理账号、身份角色、状态和基础信息</div>
+          <div class="admin-section__title">管理员管理</div>
+          <div class="admin-section__subtitle">管理系统管理员账号和基础信息</div>
         </div>
-        <div class="admin-note">共 {{ total }} 位用户</div>
+        <div class="admin-note">共 {{ total }} 位管理员</div>
       </div>
 
       <div class="admin-stats-grid">
@@ -192,13 +191,13 @@ onMounted(async () => {
         </div>
         <div class="admin-stat-soft">
           <div class="admin-stat-soft__label">管理范围</div>
-          <div class="admin-stat-soft__value">账号与角色</div>
-          <div class="admin-stat-soft__desc">管理员、医生、患者统一纳入管理</div>
+          <div class="admin-stat-soft__value">管理员账号</div>
+          <div class="admin-stat-soft__desc">仅管理系统管理员</div>
         </div>
         <div class="admin-stat-soft">
           <div class="admin-stat-soft__label">工作目标</div>
           <div class="admin-stat-soft__value">信息清晰</div>
-          <div class="admin-stat-soft__desc">保证账号信息维护有序、可追踪</div>
+          <div class="admin-stat-soft__desc">保证管理员账号信息维护有序、可追踪</div>
         </div>
       </div>
     </section>
@@ -211,8 +210,8 @@ onMounted(async () => {
         </div>
 
         <div class="admin-toolbar__group">
-          <div class="admin-toolbar__meta">支持新增、编辑、删除用户</div>
-          <el-button type="primary" @click="openCreate">新增用户</el-button>
+          <div class="admin-toolbar__meta">支持新增、编辑、删除管理员</div>
+          <el-button type="primary" @click="openCreate">新增管理员</el-button>
         </div>
       </div>
 
@@ -222,9 +221,6 @@ onMounted(async () => {
         <el-table-column prop="nickname" label="昵称" width="140" />
         <el-table-column prop="realName" label="姓名" width="140" />
         <el-table-column prop="phone" label="手机号" width="140" />
-        <el-table-column label="角色" width="110">
-          <template #default="{ row }">{{ roleText(row.roleType) }}</template>
-        </el-table-column>
         <el-table-column label="状态" width="110">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ statusText(row.status) }}</el-tag>
@@ -255,7 +251,7 @@ onMounted(async () => {
     </el-card>
   </div>
 
-  <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增用户' : '编辑用户'" width="720px">
+  <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增管理员' : '编辑管理员'" width="720px">
     <el-form ref="editFormRef" :model="editForm" label-width="90px" :disabled="editLoading">
       <el-form-item
         label="用户名"
@@ -300,13 +296,6 @@ onMounted(async () => {
         </el-select>
       </el-form-item>
 
-      <el-form-item label="角色" prop="roleType">
-        <el-select v-model="editForm.roleType" style="width: 160px">
-          <el-option :value="1" label="管理员" />
-          <el-option :value="2" label="医生" />
-          <el-option :value="3" label="患者" />
-        </el-select>
-      </el-form-item>
 
       <el-form-item label="状态" prop="status">
         <el-select v-model="editForm.status" style="width: 160px">

@@ -3,7 +3,6 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '../utils/http'
 import { useAuthStore } from '../stores/auth'
-import DoctorSelect from '../components/DoctorSelect.vue'
 import DepartmentSelect from '../components/DepartmentSelect.vue'
 
 const auth = useAuthStore()
@@ -29,7 +28,9 @@ const editFormRef = ref(null)
 
 const editForm = reactive({
   doctorId: null,
-  userId: null,
+  username: '',
+  password: '',
+  realName: '',
   deptId: null,
   jobTitle: '',
   specialty: '',
@@ -81,7 +82,9 @@ function resetAndSearch() {
 function openCreate() {
   editMode.value = 'create'
   editForm.doctorId = null
-  editForm.userId = null
+  editForm.username = ''
+  editForm.password = ''
+  editForm.realName = ''
   editForm.deptId = null
   editForm.jobTitle = ''
   editForm.specialty = ''
@@ -99,7 +102,9 @@ async function openEdit(row) {
   try {
     const d = await http.get(`/api/doctors/${row.doctorId}`)
     editForm.doctorId = d.doctorId
-    editForm.userId = d.userId
+    editForm.username = d.username || ''
+    editForm.password = ''
+    editForm.realName = d.realName || ''
     editForm.deptId = d.deptId
     editForm.jobTitle = d.jobTitle || ''
     editForm.specialty = d.specialty || ''
@@ -119,7 +124,9 @@ async function submitEdit() {
   try {
     if (editMode.value === 'create') {
       await http.post('/api/doctors', {
-        userId: editForm.userId,
+        username: editForm.username,
+        password: editForm.password,
+        realName: editForm.realName,
         deptId: editForm.deptId,
         jobTitle: editForm.jobTitle,
         specialty: editForm.specialty,
@@ -131,6 +138,9 @@ async function submitEdit() {
       ElMessage.success('已创建')
     } else {
       await http.put(`/api/doctors/${editForm.doctorId}`, {
+        username: editForm.username,
+        password: editForm.password || null,
+        realName: editForm.realName || null,
         deptId: editForm.deptId,
         jobTitle: editForm.jobTitle,
         specialty: editForm.specialty,
@@ -217,10 +227,8 @@ onMounted(async () => {
 
       <el-table :data="records" v-loading="loading" style="width: 100%">
         <el-table-column prop="doctorId" label="ID" width="90" />
-        <el-table-column prop="userId" label="用户ID" width="100" />
         <el-table-column prop="username" label="用户名" width="140" />
         <el-table-column prop="realName" label="姓名" width="140" />
-        <el-table-column prop="phone" label="手机号" width="140" />
         <el-table-column prop="deptId" label="科室ID" width="100" />
         <el-table-column prop="jobTitle" label="职称" width="140" show-overflow-tooltip />
         <el-table-column prop="specialty" label="专长" min-width="200" show-overflow-tooltip />
@@ -253,16 +261,27 @@ onMounted(async () => {
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增医生' : '编辑医生'" width="760px">
     <el-form ref="editFormRef" :model="editForm" label-width="100px" :disabled="editLoading">
       <el-form-item
-        label="用户"
-        prop="userId"
-        :rules="editMode === 'create' ? [{ required: true, message: '请选择用户（需为医生角色）', trigger: 'change' }] : []"
+        label="用户名"
+        prop="username"
+        :rules="[{ required: true, message: '请输入用户名', trigger: 'blur' }]"
       >
-        <DoctorSelect 
-          v-model="editForm.userId" 
-          :disabled="editMode !== 'create'"
-          style="width: 260px"
-          placeholder="请搜索并选择医生用户"
-        />
+        <el-input v-model="editForm.username" :disabled="editMode !== 'create'" maxlength="64" style="width: 260px" />
+      </el-form-item>
+
+      <el-form-item
+        label="密码"
+        prop="password"
+        :rules="editMode === 'create' ? [{ required: true, message: '请输入密码', trigger: 'blur' }] : []"
+      >
+        <el-input v-model="editForm.password" type="password" show-password maxlength="64" style="width: 260px" placeholder="编辑时不填表示不修改" />
+      </el-form-item>
+
+      <el-form-item
+        label="姓名"
+        prop="realName"
+        :rules="[{ required: true, message: '请输入姓名', trigger: 'blur' }]"
+      >
+        <el-input v-model="editForm.realName" maxlength="50" style="width: 260px" />
       </el-form-item>
 
       <el-form-item label="科室" prop="deptId" :rules="[{ required: true, message: '请选择科室', trigger: 'change' }]">

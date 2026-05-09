@@ -214,10 +214,9 @@ public class StatisticsService {
             .limit(8)
             .map(entry -> {
                 DoctorInfo doctor = doctorMap.get(entry.getKey());
-                User user = doctor == null ? null : userMap.get(doctor.getUserId());
                 Map<String, Object> item = new HashMap<>();
-                item.put("real_name", user != null ? user.getRealName() : null);
-                item.put("username", user != null ? user.getUsername() : null);
+                item.put("real_name", doctor != null ? doctor.getRealName() : null);
+                item.put("username", doctor != null ? doctor.getUsername() : null);
                 item.put("count", entry.getValue());
                 return item;
             })

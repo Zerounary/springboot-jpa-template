@@ -25,35 +25,35 @@ public class PatientService {
     private final PatientInfoRepository patientInfoRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final PasswordService passwordService;
 
-    public PatientService(PatientInfoRepository patientInfoRepository, UserRepository userRepository, UserService userService) {
+    public PatientService(PatientInfoRepository patientInfoRepository, UserRepository userRepository, UserService userService, PasswordService passwordService) {
         this.patientInfoRepository = patientInfoRepository;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.passwordService = passwordService;
     }
 
     @Transactional
     public PatientDto create(Long operatorUserId, PatientCreateRequest req) {
         checkAdmin(operatorUserId);
-        User user = userService.getById(req.getUserId());
-        if (user.getRoleType() == null || user.getRoleType() != 3) {
-            throw new BizException(400, "用户不是患者角色");
-        }
 
         QueryWrapper<PatientInfo> exists = new QueryWrapper<>();
-        exists.eq("user_id", req.getUserId());
+        exists.eq("username", req.getUsername());
         exists.eq("is_deleted", 0);
         if (patientInfoRepository.selectCount(exists) > 0) {
-            throw new BizException(400, "该用户已存在患者档案");
+            throw new BizException(400, "用户名已存在");
         }
 
         PatientInfo pi = new PatientInfo();
-        pi.setUserId(req.getUserId());
+        pi.setUsername(req.getUsername());
+        pi.setPasswordHash(passwordService.hash(req.getPassword()));
+        pi.setRealName(req.getRealName());
         fillUpdate(pi, req);
         pi.setIsDeleted(0);
         patientInfoRepository.insert(pi);
 
-        return toDto(pi, user);
+        return toDto(pi);
     }
 
     @Transactional
@@ -63,11 +63,27 @@ public class PatientService {
         if (pi == null || (pi.getIsDeleted() != null && pi.getIsDeleted() != 0)) {
             throw new BizException(404, "患者档案不存在");
         }
+
+        if (req.getUsername() != null) {
+            QueryWrapper<PatientInfo> exists = new QueryWrapper<>();
+            exists.eq("username", req.getUsername());
+            exists.eq("is_deleted", 0);
+            exists.ne("patient_id", patientId);
+            if (patientInfoRepository.selectCount(exists) > 0) {
+                throw new BizException(400, "用户名已存在");
+            }
+            pi.setUsername(req.getUsername());
+        }
+        if (req.getPassword() != null) {
+            pi.setPasswordHash(passwordService.hash(req.getPassword()));
+        }
+        if (req.getRealName() != null) {
+            pi.setRealName(req.getRealName());
+        }
         fillUpdate(pi, req);
         patientInfoRepository.updateById(pi);
 
-        User user = userRepository.selectById(pi.getUserId());
-        return toDto(pi, user);
+        return toDto(pi);
     }
 
     @Transactional
@@ -89,12 +105,11 @@ public class PatientService {
         }
         User operator = userService.getById(operatorUserId);
         if (operator.getRoleType() != null && operator.getRoleType() == 3) {
-            if (!operator.getId().equals(pi.getUserId())) {
+            if (!operator.getUsername().equals(pi.getUsername())) {
                 throw new BizException(403, "无权限");
             }
         }
-        User user = userRepository.selectById(pi.getUserId());
-        return toDto(pi, user);
+        return toDto(pi);
     }
 
     @Transactional(readOnly = true)
@@ -102,12 +117,12 @@ public class PatientService {
         User operator = userService.getById(operatorUserId);
         if (operator.getRoleType() != null && operator.getRoleType() == 3) {
             QueryWrapper<PatientInfo> qw = new QueryWrapper<>();
-            qw.eq("user_id", operatorUserId);
+            qw.eq("username", operator.getUsername());
             qw.eq("is_deleted", 0);
             PatientInfo pi = patientInfoRepository.selectOne(qw);
             List<PatientDto> records = new ArrayList<>();
             if (pi != null) {
-                records.add(toDto(pi, operator));
+                records.add(toDto(pi));
             }
             Page<PatientDto> out = new Page<>(1, 10, records.size());
             out.setRecords(records);
@@ -117,51 +132,12 @@ public class PatientService {
         Page<PatientInfo> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
         QueryWrapper<PatientInfo> qw = new QueryWrapper<>();
         qw.eq("is_deleted", 0);
+        if (keyword != null) {
+            qw.like("username", keyword);
+        }
         qw.orderByDesc("patient_id");
         IPage<PatientInfo> piPage = patientInfoRepository.selectPage(p, qw);
-
-        List<PatientInfo> records = piPage.getRecords();
-        if (records == null || records.isEmpty()) {
-            return piPage.convert(pi -> toDto(pi, null));
-        }
-
-        List<Long> userIds = new ArrayList<>();
-        for (PatientInfo pi : records) {
-            userIds.add(pi.getUserId());
-        }
-        Map<Long, User> userMap = new HashMap<>();
-        List<User> users = userRepository.selectBatchIds(userIds);
-        if (users != null) {
-            for (User u : users) {
-                userMap.put(u.getId(), u);
-            }
-        }
-
-        List<PatientDto> dtoRecords = new ArrayList<>();
-        for (PatientInfo pi : records) {
-            User u = userMap.get(pi.getUserId());
-            if (keyword != null) {
-                String kw = keyword;
-                boolean match = false;
-                if (u != null) {
-                    if (u.getUsername() != null && u.getUsername().contains(kw)) {
-                        match = true;
-                    } else if (u.getRealName() != null && u.getRealName().contains(kw)) {
-                        match = true;
-                    } else if (u.getPhone() != null && u.getPhone().contains(kw)) {
-                        match = true;
-                    }
-                }
-                if (!match) {
-                    continue;
-                }
-            }
-            dtoRecords.add(toDto(pi, u));
-        }
-
-        Page<PatientDto> out = new Page<>(piPage.getCurrent(), piPage.getSize(), piPage.getTotal());
-        out.setRecords(dtoRecords);
-        return out;
+        return piPage.convert(pi -> toDto(pi));
     }
 
     @Transactional(readOnly = true)
@@ -177,7 +153,7 @@ public class PatientService {
         if (pi == null) {
             throw new BizException(404, "患者档案不存在");
         }
-        return toDto(pi, operator);
+        return toDto(pi);
     }
 
     @Transactional
@@ -200,7 +176,7 @@ public class PatientService {
             fillUpdate(pi, req);
             patientInfoRepository.updateById(pi);
         }
-        return toDto(pi, operator);
+        return toDto(pi);
     }
 
     private void checkAdmin(Long operatorUserId) {
@@ -273,10 +249,11 @@ public class PatientService {
         }
     }
 
-    private PatientDto toDto(PatientInfo pi, User u) {
+    private PatientDto toDto(PatientInfo pi) {
         PatientDto dto = new PatientDto();
         dto.setPatientId(pi.getPatientId());
-        dto.setUserId(pi.getUserId());
+        dto.setUsername(pi.getUsername());
+        dto.setRealName(pi.getRealName());
         dto.setBirthDate(pi.getBirthDate());
         dto.setAge(pi.getAge());
         dto.setBloodType(pi.getBloodType());
@@ -288,13 +265,6 @@ public class PatientService {
         dto.setPastMedicalHistory(pi.getPastMedicalHistory());
         dto.setCreateTime(pi.getCreateTime());
         dto.setUpdateTime(pi.getUpdateTime());
-        if (u != null) {
-            dto.setUsername(u.getUsername());
-            dto.setRealName(u.getRealName());
-            dto.setPhone(u.getPhone());
-            dto.setGender(u.getGender());
-            dto.setAvatar(u.getAvatar());
-        }
         return dto;
     }
 }

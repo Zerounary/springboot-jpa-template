@@ -7,15 +7,9 @@ public class DoctorDto {
 
     private Long doctorId;
 
-    private Long userId;
-
     private String username;
 
     private String realName;
-
-    private String phone;
-
-    private String avatar;
 
     private Long deptId;
 
@@ -45,14 +39,6 @@ public class DoctorDto {
         this.doctorId = doctorId;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
     public String getUsername() {
         return username;
     }
@@ -67,22 +53,6 @@ public class DoctorDto {
 
     public void setRealName(String realName) {
         this.realName = realName;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
     }
 
     public Long getDeptId() {

@@ -11,6 +11,7 @@ public class MedicationRecordDto {
     private String recordId;
     private String prescriptionId;
     private Long patientId;
+    private String patientName;
     private String medicationName;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

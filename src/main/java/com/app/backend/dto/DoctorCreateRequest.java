@@ -7,8 +7,17 @@ import java.math.BigDecimal;
 
 public class DoctorCreateRequest {
 
-    @NotNull
-    private Long userId;
+    @NotBlank
+    @Size(max = 64)
+    private String username;
+
+    @NotBlank
+    @Size(min = 6, max = 64)
+    private String password;
+
+    @NotBlank
+    @Size(max = 50)
+    private String realName;
 
     @NotNull
     private Long deptId;
@@ -32,12 +41,28 @@ public class DoctorCreateRequest {
     @Size(max = 255)
     private String schedule;
 
-    public Long getUserId() {
-        return userId;
+    public String getUsername() {
+        return username;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
     }
 
     public Long getDeptId() {

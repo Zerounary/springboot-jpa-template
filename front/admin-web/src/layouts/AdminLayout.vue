@@ -52,7 +52,7 @@ const menus = computed(() => {
   if (isAdmin.value) {
     base.push(
       { path: '/health-monitors', label: '健康数据管理' },
-      { path: '/users', label: '用户管理' },
+      { path: '/users', label: '管理员管理' },
       { path: '/departments', label: '科室管理' },
       { path: '/doctors', label: '医生管理' },
       { path: '/patients', label: '患者管理' },

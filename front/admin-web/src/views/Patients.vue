@@ -3,7 +3,6 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '../utils/http'
 import { useAuthStore } from '../stores/auth'
-import PatientSelect from '../components/PatientSelect.vue'
 
 const auth = useAuthStore()
 
@@ -23,7 +22,9 @@ const editFormRef = ref(null)
 
 const editForm = reactive({
   patientId: null,
-  userId: null,
+  username: '',
+  password: '',
+  realName: '',
   birthDate: null,
   age: null,
   bloodType: '',
@@ -34,12 +35,6 @@ const editForm = reactive({
   allergyHistory: '',
   pastMedicalHistory: '',
 })
-
-function genderText(v) {
-  if (v === 1) return '男'
-  if (v === 2) return '女'
-  return '-'
-}
 
 async function fetchPage() {
   loading.value = true
@@ -66,7 +61,9 @@ function resetAndSearch() {
 function openCreate() {
   editMode.value = 'create'
   editForm.patientId = null
-  editForm.userId = null
+  editForm.username = ''
+  editForm.password = ''
+  editForm.realName = ''
   editForm.birthDate = null
   editForm.age = null
   editForm.bloodType = ''
@@ -86,7 +83,9 @@ async function openEdit(row) {
   try {
     const d = await http.get(`/api/patients/${row.patientId}`)
     editForm.patientId = d.patientId
-    editForm.userId = d.userId
+    editForm.username = d.username || ''
+    editForm.password = ''
+    editForm.realName = d.realName || ''
     editForm.birthDate = d.birthDate || null
     editForm.age = d.age ?? null
     editForm.bloodType = d.bloodType || ''
@@ -108,7 +107,9 @@ async function submitEdit() {
   try {
     if (editMode.value === 'create') {
       await http.post('/api/patients', {
-        userId: editForm.userId,
+        username: editForm.username,
+        password: editForm.password,
+        realName: editForm.realName,
         birthDate: editForm.birthDate || null,
         age: editForm.age ?? null,
         bloodType: editForm.bloodType || null,
@@ -122,6 +123,9 @@ async function submitEdit() {
       ElMessage.success('已创建')
     } else {
       await http.put(`/api/patients/${editForm.patientId}`, {
+        username: editForm.username,
+        password: editForm.password || null,
+        realName: editForm.realName || null,
         birthDate: editForm.birthDate || null,
         age: editForm.age ?? null,
         bloodType: editForm.bloodType || null,
@@ -207,13 +211,8 @@ onMounted(async () => {
 
       <el-table :data="records" v-loading="loading" style="width: 100%">
         <el-table-column prop="patientId" label="患者ID" width="100" />
-        <el-table-column prop="userId" label="用户ID" width="100" />
         <el-table-column prop="username" label="用户名" width="140" />
         <el-table-column prop="realName" label="姓名" width="140" />
-        <el-table-column label="性别" width="90">
-          <template #default="{ row }">{{ genderText(row.gender) }}</template>
-        </el-table-column>
-        <el-table-column prop="phone" label="手机号" width="140" />
         <el-table-column prop="birthDate" label="生日" width="120" />
         <el-table-column prop="age" label="年龄" width="90" />
         <el-table-column prop="bloodType" label="血型" width="100" />
@@ -245,16 +244,27 @@ onMounted(async () => {
   <el-dialog v-model="editVisible" :title="editMode === 'create' ? '新增患者' : '编辑患者'" width="760px">
     <el-form ref="editFormRef" :model="editForm" label-width="110px" :disabled="editLoading">
       <el-form-item
-        label="用户"
-        prop="userId"
-        :rules="editMode === 'create' ? [{ required: true, message: '请选择用户（需为患者角色）', trigger: 'change' }] : []"
+        label="用户名"
+        prop="username"
+        :rules="[{ required: true, message: '请输入用户名', trigger: 'blur' }]"
       >
-        <PatientSelect 
-          v-model="editForm.userId" 
-          :disabled="editMode !== 'create'"
-          style="width: 260px"
-          placeholder="请搜索并选择患者用户"
-        />
+        <el-input v-model="editForm.username" :disabled="editMode !== 'create'" maxlength="64" style="width: 260px" />
+      </el-form-item>
+
+      <el-form-item
+        label="密码"
+        prop="password"
+        :rules="editMode === 'create' ? [{ required: true, message: '请输入密码', trigger: 'blur' }] : []"
+      >
+        <el-input v-model="editForm.password" type="password" show-password maxlength="64" style="width: 260px" placeholder="编辑时不填表示不修改" />
+      </el-form-item>
+
+      <el-form-item
+        label="姓名"
+        prop="realName"
+        :rules="[{ required: true, message: '请输入姓名', trigger: 'blur' }]"
+      >
+        <el-input v-model="editForm.realName" maxlength="50" style="width: 260px" />
       </el-form-item>
 
       <el-form-item label="生日" prop="birthDate">

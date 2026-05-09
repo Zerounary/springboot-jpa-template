@@ -149,7 +149,10 @@ CREATE TABLE IF NOT EXISTS hospital_department (
 
 CREATE TABLE IF NOT EXISTS doctor_info (
   doctor_id BIGINT NOT NULL AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
+  user_id BIGINT NULL,
+  username VARCHAR(64) NOT NULL,
+  password_hash VARCHAR(100) NOT NULL,
+  real_name VARCHAR(50) NULL,
   dept_id BIGINT NOT NULL,
   job_title VARCHAR(30) NOT NULL,
   specialty VARCHAR(255) NOT NULL,
@@ -161,9 +164,39 @@ CREATE TABLE IF NOT EXISTS doctor_info (
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   is_deleted TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (doctor_id),
-  UNIQUE KEY uk_doctor_user_id (user_id),
+  UNIQUE KEY uk_doctor_username (username),
   KEY idx_doctor_dept_id (dept_id)
 );
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE doctor_info ADD COLUMN username VARCHAR(64) NOT NULL AFTER user_id', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND COLUMN_NAME = 'username';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE doctor_info ADD COLUMN password_hash VARCHAR(100) NOT NULL AFTER username', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND COLUMN_NAME = 'password_hash';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE doctor_info MODIFY COLUMN user_id BIGINT NULL', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND COLUMN_NAME = 'user_id';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE doctor_info DROP INDEX uk_doctor_user_id', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND INDEX_NAME = 'uk_doctor_user_id';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'CREATE UNIQUE INDEX uk_doctor_username ON doctor_info(username)', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND INDEX_NAME = 'uk_doctor_username';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SELECT IF(COUNT(*) = 0, 'ALTER TABLE doctor_info ADD COLUMN daily_appointment_limit INT NULL DEFAULT 20 AFTER schedule', 'SELECT 1')
 INTO @sql
@@ -171,9 +204,54 @@ FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND COLUMN_NAME = 'daily_appointment_limit';
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE doctor_info ADD COLUMN real_name VARCHAR(50) NULL AFTER password_hash', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'doctor_info' AND COLUMN_NAME = 'real_name';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE patient_info ADD COLUMN username VARCHAR(64) NOT NULL AFTER user_id', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'patient_info' AND COLUMN_NAME = 'username';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE patient_info ADD COLUMN password_hash VARCHAR(100) NOT NULL AFTER username', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'patient_info' AND COLUMN_NAME = 'password_hash';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE patient_info ADD COLUMN real_name VARCHAR(50) NULL AFTER password_hash', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'patient_info' AND COLUMN_NAME = 'real_name';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE patient_info MODIFY COLUMN user_id BIGINT NULL', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'patient_info' AND COLUMN_NAME = 'user_id';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'ALTER TABLE patient_info DROP INDEX uk_patient_user_id', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'patient_info' AND INDEX_NAME = 'uk_patient_user_id';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) = 0, 'CREATE UNIQUE INDEX uk_patient_username ON patient_info(username)', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'patient_info' AND INDEX_NAME = 'uk_patient_username';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS patient_info (
   patient_id BIGINT NOT NULL AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
+  user_id BIGINT NULL,
+  username VARCHAR(64) NOT NULL,
+  password_hash VARCHAR(100) NOT NULL,
+  real_name VARCHAR(50) NULL,
   birth_date DATE NULL,
   age INT NULL,
   blood_type VARCHAR(10) NULL,
@@ -187,7 +265,7 @@ CREATE TABLE IF NOT EXISTS patient_info (
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   is_deleted TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (patient_id),
-  UNIQUE KEY uk_patient_user_id (user_id)
+  UNIQUE KEY uk_patient_username (username)
 );
 
 CREATE TABLE IF NOT EXISTS registration_record (
@@ -360,144 +438,182 @@ SELECT '急诊科', 'JZK', 0, '急诊科科室', 10, 1, NOW(), NOW(), 0
 ) AS dept_data
 WHERE NOT EXISTS (SELECT 1 FROM hospital_department);
 
--- Insert sample doctors
-INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'doctor001', 'doctor123', '李明医生', 'liming@hospital.com', '李明', 2, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'doctor001');
-
-INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'doctor002', 'doctor123', '王芳医生', 'wangfang@hospital.com', '王芳', 2, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'doctor002');
-
-INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'doctor003', 'doctor123', '张伟医生', 'zhangwei@hospital.com', '张伟', 2, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'doctor003');
-
-INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'doctor004', 'doctor123', '刘静医生', 'liujing@hospital.com', '刘静', 2, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'doctor004');
-
-INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'doctor005', 'doctor123', '陈涛医生', 'chentao@hospital.com', '陈涛', 2, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'doctor005');
-
--- Insert doctor info
-INSERT INTO doctor_info (user_id, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
-SELECT 
-    u.id, 
-    hd.dept_id, 
+-- Insert doctor info directly with username and password
+INSERT INTO doctor_info (user_id, username, password_hash, real_name, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'doctor001' as username,
+    'doctor123' as password_hash,
+    '张伟' as real_name,
+    hd.dept_id,
     '主任医师' as job_title,
     '心血管疾病、高血压、冠心病' as specialty,
     '从事内科临床工作20年，擅长心血管疾病的诊治' as introduction,
     50.00 as registration_fee,
     '周一、三、五上午' as schedule,
     NOW(), NOW(), 0
-FROM users u, hospital_department hd
-WHERE u.username = 'doctor001' AND hd.dept_code = 'NK'
-AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE user_id = u.id);
+FROM hospital_department hd
+WHERE hd.dept_code = 'NK'
+AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE username = 'doctor001');
 
-INSERT INTO doctor_info (user_id, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
-SELECT 
-    u.id, 
-    hd.dept_id, 
+INSERT INTO doctor_info (user_id, username, password_hash, real_name, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'doctor002' as username,
+    'doctor123' as password_hash,
+    '李娜' as real_name,
+    hd.dept_id,
     '副主任医师' as job_title,
     '妇科炎症、月经不调、不孕不育' as specialty,
     '从事妇产科工作15年，经验丰富' as introduction,
     45.00 as registration_fee,
     '周二、四上午' as schedule,
     NOW(), NOW(), 0
-FROM users u, hospital_department hd
-WHERE u.username = 'doctor002' AND hd.dept_code = 'FCK'
-AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE user_id = u.id);
+FROM hospital_department hd
+WHERE hd.dept_code = 'FCK'
+AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE username = 'doctor002');
 
-INSERT INTO doctor_info (user_id, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
-SELECT 
-    u.id, 
-    hd.dept_id, 
+INSERT INTO doctor_info (user_id, username, password_hash, real_name, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'doctor003' as username,
+    'doctor123' as password_hash,
+    '王强' as real_name,
+    hd.dept_id,
     '主治医师' as job_title,
     '小儿感冒、肺炎、消化不良' as specialty,
     '儿科专家，对儿童常见病有独到见解' as introduction,
     40.00 as registration_fee,
     '周一至周五全天' as schedule,
     NOW(), NOW(), 0
-FROM users u, hospital_department hd
-WHERE u.username = 'doctor003' AND hd.dept_code = 'EK'
-AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE user_id = u.id);
+FROM hospital_department hd
+WHERE hd.dept_code = 'EK'
+AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE username = 'doctor003');
 
-INSERT INTO doctor_info (user_id, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
-SELECT 
-    u.id, 
-    hd.dept_id, 
+INSERT INTO doctor_info (user_id, username, password_hash, real_name, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'doctor004' as username,
+    'doctor123' as password_hash,
+    '刘洋' as real_name,
+    hd.dept_id,
     '住院医师' as job_title,
     '白内障、青光眼、视网膜疾病' as specialty,
     '眼科硕士，专注眼部疾病治疗' as introduction,
     60.00 as registration_fee,
     '周三、五下午' as schedule,
     NOW(), NOW(), 0
-FROM users u, hospital_department hd
-WHERE u.username = 'doctor004' AND hd.dept_code = 'YK'
-AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE user_id = u.id);
+FROM hospital_department hd
+WHERE hd.dept_code = 'YK'
+AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE username = 'doctor004');
 
-INSERT INTO doctor_info (user_id, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
-SELECT 
-    u.id, 
-    hd.dept_id, 
+INSERT INTO doctor_info (user_id, username, password_hash, real_name, dept_id, job_title, specialty, introduction, registration_fee, schedule, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'doctor005' as username,
+    'doctor123' as password_hash,
+    '陈静' as real_name,
+    hd.dept_id,
     '主治医师' as job_title,
     '皮肤病、湿疹、银屑病' as specialty,
     '皮肤科专家，擅长各类皮肤病治疗' as introduction,
     35.00 as registration_fee,
     '周二、四下午' as schedule,
     NOW(), NOW(), 0
-FROM users u, hospital_department hd
-WHERE u.username = 'doctor005' AND hd.dept_code = 'PFK'
-AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE user_id = u.id);
+FROM hospital_department hd
+WHERE hd.dept_code = 'PFK'
+AND NOT EXISTS (SELECT 1 FROM doctor_info WHERE username = 'doctor005');
 
--- Insert sample patients
-INSERT INTO users (username, password_hash, nickname, email, real_name, phone, id_card, gender, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'patient001', 'patient123', '张三', 'zhangsan@email.com', '张三', '13800138001', '110101199001011234', 1, 3, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'patient001');
+-- Insert patient info directly with username and password
+INSERT INTO patient_info (user_id, username, password_hash, real_name, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'patient001' as username,
+    'patient123' as password_hash,
+    '张小明' as real_name,
+    '1990-01-01' as birth_date,
+    TIMESTAMPDIFF(YEAR, '1990-01-01', CURDATE()) as age,
+    'A' as blood_type,
+    1 as marital_status,
+    '北京市朝阳区建国路1号' as address,
+    '张父' as emergency_contact,
+    '13900139001' as emergency_phone,
+    '青霉素过敏' as allergy_history,
+    '高血压病史' as past_medical_history,
+    NOW(), NOW(), 0
+WHERE NOT EXISTS (SELECT 1 FROM patient_info WHERE username = 'patient001');
 
-INSERT INTO users (username, password_hash, nickname, email, real_name, phone, id_card, gender, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'patient002', 'patient123', '李四', 'lisi@email.com', '李四', '13800138002', '110101199002022345', 2, 3, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'patient002');
+INSERT INTO patient_info (user_id, username, password_hash, real_name, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'patient002' as username,
+    'patient123' as password_hash,
+    '李小红' as real_name,
+    '1992-02-02' as birth_date,
+    TIMESTAMPDIFF(YEAR, '1992-02-02', CURDATE()) as age,
+    'B' as blood_type,
+    2 as marital_status,
+    '北京市海淀区中关村大街2号' as address,
+    '李母' as emergency_contact,
+    '13900139002' as emergency_phone,
+    '花粉过敏' as allergy_history,
+    '糖尿病史' as past_medical_history,
+    NOW(), NOW(), 0
+WHERE NOT EXISTS (SELECT 1 FROM patient_info WHERE username = 'patient002');
 
-INSERT INTO users (username, password_hash, nickname, email, real_name, phone, id_card, gender, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'patient003', 'patient123', '王五', 'wangwu@email.com', '王五', '13800138003', '110101199003033456', 1, 3, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'patient003');
+INSERT INTO patient_info (user_id, username, password_hash, real_name, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'patient003' as username,
+    'patient123' as password_hash,
+    '王小刚' as real_name,
+    '1993-03-03' as birth_date,
+    TIMESTAMPDIFF(YEAR, '1993-03-03', CURDATE()) as age,
+    'O' as blood_type,
+    1 as marital_status,
+    '北京市东城区王府井大街3号' as address,
+    '王妻' as emergency_contact,
+    '13900139003' as emergency_phone,
+    '无' as allergy_history,
+    '无' as past_medical_history,
+    NOW(), NOW(), 0
+WHERE NOT EXISTS (SELECT 1 FROM patient_info WHERE username = 'patient003');
 
-INSERT INTO users (username, password_hash, nickname, email, real_name, phone, id_card, gender, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'patient004', 'patient123', '赵六', 'zhaoliu@email.com', '赵六', '13800138004', '110101199004044567', 2, 3, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'patient004');
+INSERT INTO patient_info (user_id, username, password_hash, real_name, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'patient004' as username,
+    'patient123' as password_hash,
+    '赵小丽' as real_name,
+    '1994-04-04' as birth_date,
+    TIMESTAMPDIFF(YEAR, '1994-04-04', CURDATE()) as age,
+    'AB' as blood_type,
+    2 as marital_status,
+    '北京市西城区金融街4号' as address,
+    '赵夫' as emergency_contact,
+    '13900139004' as emergency_phone,
+    '海鲜过敏' as allergy_history,
+    '哮喘病史' as past_medical_history,
+    NOW(), NOW(), 0
+WHERE NOT EXISTS (SELECT 1 FROM patient_info WHERE username = 'patient004');
 
-INSERT INTO users (username, password_hash, nickname, email, real_name, phone, id_card, gender, role_type, status, is_deleted, created_at, updated_at)
-SELECT 'patient005', 'patient123', '钱七', 'qianqi@email.com', '钱七', '13800138005', '110101199005055678', 1, 3, 1, 0, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'patient005');
-
--- Insert patient info
-INSERT INTO patient_info (user_id, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
-SELECT u.id, '1990-01-01' as birth_date, TIMESTAMPDIFF(YEAR, '1990-01-01', CURDATE()) as age, 'A' as blood_type, 1 as marital_status, '北京市朝阳区建国路1号' as address, '张父' as emergency_contact, '13900139001' as emergency_phone, '青霉素过敏' as allergy_history, '高血压病史' as past_medical_history, NOW(), NOW(), 0
-FROM users u WHERE u.username = 'patient001'
-AND NOT EXISTS (SELECT 1 FROM patient_info WHERE user_id = u.id);
-
-INSERT INTO patient_info (user_id, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
-SELECT u.id, '1992-02-02' as birth_date, TIMESTAMPDIFF(YEAR, '1992-02-02', CURDATE()) as age, 'B' as blood_type, 2 as marital_status, '北京市海淀区中关村大街2号' as address, '李母' as emergency_contact, '13900139002' as emergency_phone, '花粉过敏' as allergy_history, '糖尿病史' as past_medical_history, NOW(), NOW(), 0
-FROM users u WHERE u.username = 'patient002'
-AND NOT EXISTS (SELECT 1 FROM patient_info WHERE user_id = u.id);
-
-INSERT INTO patient_info (user_id, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
-SELECT u.id, '1993-03-03' as birth_date, TIMESTAMPDIFF(YEAR, '1993-03-03', CURDATE()) as age, 'O' as blood_type, 1 as marital_status, '北京市东城区王府井大街3号' as address, '王妻' as emergency_contact, '13900139003' as emergency_phone, '无' as allergy_history, '无' as past_medical_history, NOW(), NOW(), 0
-FROM users u WHERE u.username = 'patient003'
-AND NOT EXISTS (SELECT 1 FROM patient_info WHERE user_id = u.id);
-
-INSERT INTO patient_info (user_id, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
-SELECT u.id, '1994-04-04' as birth_date, TIMESTAMPDIFF(YEAR, '1994-04-04', CURDATE()) as age, 'AB' as blood_type, 2 as marital_status, '北京市西城区金融街4号' as address, '赵夫' as emergency_contact, '13900139004' as emergency_phone, '海鲜过敏' as allergy_history, '哮喘病史' as past_medical_history, NOW(), NOW(), 0
-FROM users u WHERE u.username = 'patient004'
-AND NOT EXISTS (SELECT 1 FROM patient_info WHERE user_id = u.id);
-
-INSERT INTO patient_info (user_id, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
-SELECT u.id, '1995-05-05' as birth_date, TIMESTAMPDIFF(YEAR, '1995-05-05', CURDATE()) as age, 'A' as blood_type, 1 as marital_status, '北京市丰台区南三环西路5号' as address, '钱子' as emergency_contact, '13900139005' as emergency_phone, '无' as allergy_history, '无' as past_medical_history, NOW(), NOW(), 0
-FROM users u WHERE u.username = 'patient005'
-AND NOT EXISTS (SELECT 1 FROM patient_info WHERE user_id = u.id);
+INSERT INTO patient_info (user_id, username, password_hash, real_name, birth_date, age, blood_type, marital_status, address, emergency_contact, emergency_phone, allergy_history, past_medical_history, create_time, update_time, is_deleted)
+SELECT
+    NULL,
+    'patient005' as username,
+    'patient123' as password_hash,
+    '孙小华' as real_name,
+    '1995-05-05' as birth_date,
+    TIMESTAMPDIFF(YEAR, '1995-05-05', CURDATE()) as age,
+    'A' as blood_type,
+    1 as marital_status,
+    '北京市丰台区南三环西路5号' as address,
+    '钱子' as emergency_contact,
+    '13900139005' as emergency_phone,
+    '无' as allergy_history,
+    '无' as past_medical_history,
+    NOW(), NOW(), 0
+WHERE NOT EXISTS (SELECT 1 FROM patient_info WHERE username = 'patient005');
 
 -- Insert sample registration records
 INSERT INTO registration_record (registration_no, patient_id, doctor_id, dept_id, schedule_date, time_slot, registration_fee, pay_status, registration_status, visit_serial_number, remark, create_time, update_time, is_deleted)
@@ -548,6 +664,25 @@ VALUES
 ALTER TABLE prescriptions ADD COLUMN record_id BIGINT AFTER prescription_id;
 ALTER TABLE prescriptions ADD INDEX idx_prescriptions_record_id (record_id);
 
+-- Drop foreign key constraints for backward compatibility
+SELECT IF(COUNT(*) > 0, 'ALTER TABLE prescriptions DROP FOREIGN KEY prescriptions_ibfk_1', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'prescriptions' AND CONSTRAINT_NAME = 'prescriptions_ibfk_1';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) > 0, 'ALTER TABLE prescriptions DROP FOREIGN KEY prescriptions_ibfk_2', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'prescriptions' AND CONSTRAINT_NAME = 'prescriptions_ibfk_2';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SELECT IF(COUNT(*) > 0, 'ALTER TABLE medication_records DROP FOREIGN KEY medication_records_ibfk_1', 'SELECT 1')
+INTO @sql
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'medication_records' AND CONSTRAINT_NAME = 'medication_records_ibfk_1';
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS prescriptions (
   id BIGINT NOT NULL AUTO_INCREMENT,
   prescription_id VARCHAR(64) NOT NULL,
@@ -568,9 +703,7 @@ CREATE TABLE IF NOT EXISTS prescriptions (
   UNIQUE KEY uk_prescriptions_id (prescription_id),
   KEY idx_prescriptions_patient_id (patient_id),
   KEY idx_prescriptions_doctor_id (doctor_id),
-  KEY idx_prescriptions_record_id (record_id),
-  FOREIGN KEY (patient_id) REFERENCES users(id),
-  FOREIGN KEY (doctor_id) REFERENCES users(id)
+  KEY idx_prescriptions_record_id (record_id)
 );
 
 CREATE TABLE IF NOT EXISTS prescription_items (
@@ -607,8 +740,7 @@ CREATE TABLE IF NOT EXISTS medication_records (
   UNIQUE KEY uk_medication_records_id (record_id),
   KEY idx_medication_records_patient_id (patient_id),
   KEY idx_medication_records_prescription_id (prescription_id),
-  KEY idx_medication_records_taken_at (taken_at),
-  FOREIGN KEY (patient_id) REFERENCES users(id)
+  KEY idx_medication_records_taken_at (taken_at)
 );
 
 -- Insert sample medication data

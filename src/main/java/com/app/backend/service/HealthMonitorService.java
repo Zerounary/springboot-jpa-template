@@ -219,35 +219,10 @@ public class HealthMonitorService {
             }
         }
 
-        List<Long> userIds = new ArrayList<>();
-        for (PatientInfo pi : patientMap.values()) {
-            if (pi != null) {
-                userIds.add(pi.getUserId());
-            }
-        }
-
-        Map<Long, User> userMap = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            List<User> users = userRepository.selectBatchIds(userIds);
-            if (users != null) {
-                for (User u : users) {
-                    userMap.put(u.getId(), u);
-                }
-            }
-        }
-
         List<HealthMonitorDto> outRecords = new ArrayList<>();
         for (HealthMonitor hm : records) {
             PatientInfo pi = patientMap.get(hm.getPatientId());
             HealthMonitorDto dto = toDto(hm, pi);
-            if (pi != null) {
-                User pu = userMap.get(pi.getUserId());
-                if (pu != null) {
-                    dto.setPatientUserId(pu.getId());
-                    dto.setPatientRealName(pu.getRealName());
-                    dto.setPatientPhone(pu.getPhone());
-                }
-            }
             outRecords.add(dto);
         }
 
@@ -299,12 +274,7 @@ public class HealthMonitorService {
         dto.setUpdateTime(hm.getUpdateTime());
 
         if (pi != null) {
-            dto.setPatientUserId(pi.getUserId());
-            User pu = userRepository.selectById(pi.getUserId());
-            if (pu != null) {
-                dto.setPatientRealName(pu.getRealName());
-                dto.setPatientPhone(pu.getPhone());
-            }
+            dto.setPatientRealName(pi.getRealName());
         }
 
         return dto;

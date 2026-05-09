@@ -7,17 +7,9 @@ public class PatientDto {
 
     private Long patientId;
 
-    private Long userId;
-
     private String username;
 
     private String realName;
-
-    private String phone;
-
-    private Integer gender;
-
-    private String avatar;
 
     private LocalDate birthDate;
 
@@ -49,14 +41,6 @@ public class PatientDto {
         this.patientId = patientId;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
     public String getUsername() {
         return username;
     }
@@ -71,30 +55,6 @@ public class PatientDto {
 
     public void setRealName(String realName) {
         this.realName = realName;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public Integer getGender() {
-        return gender;
-    }
-
-    public void setGender(Integer gender) {
-        this.gender = gender;
-    }
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
     }
 
     public LocalDate getBirthDate() {

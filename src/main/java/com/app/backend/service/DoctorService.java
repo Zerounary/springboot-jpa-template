@@ -32,33 +32,31 @@ public class DoctorService {
     private final HospitalDepartmentRepository departmentRepository;
     private final RegistrationRecordRepository registrationRecordRepository;
     private final UserService userService;
+    private final PasswordService passwordService;
 
     public DoctorService(DoctorInfoRepository doctorInfoRepository,
                          UserRepository userRepository,
                          HospitalDepartmentRepository departmentRepository,
                          RegistrationRecordRepository registrationRecordRepository,
-                         UserService userService) {
+                         UserService userService,
+                         PasswordService passwordService) {
         this.doctorInfoRepository = doctorInfoRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.registrationRecordRepository = registrationRecordRepository;
         this.userService = userService;
+        this.passwordService = passwordService;
     }
 
     @Transactional
     public DoctorDto create(Long operatorUserId, DoctorCreateRequest req) {
         checkAdmin(operatorUserId);
 
-        User user = userService.getById(req.getUserId());
-        if (user.getRoleType() == null || user.getRoleType() != 2) {
-            throw new BizException(400, "用户不是医生角色");
-        }
-
         QueryWrapper<DoctorInfo> exists = new QueryWrapper<>();
-        exists.eq("user_id", req.getUserId());
+        exists.eq("username", req.getUsername());
         exists.eq("is_deleted", 0);
         if (doctorInfoRepository.selectCount(exists) > 0) {
-            throw new BizException(400, "该用户已存在医生档案");
+            throw new BizException(400, "用户名已存在");
         }
 
         HospitalDepartment dept = departmentRepository.selectById(req.getDeptId());
@@ -67,7 +65,9 @@ public class DoctorService {
         }
 
         DoctorInfo di = new DoctorInfo();
-        di.setUserId(req.getUserId());
+        di.setUsername(req.getUsername());
+        di.setPasswordHash(passwordService.hash(req.getPassword()));
+        di.setRealName(req.getRealName());
         di.setDeptId(req.getDeptId());
         di.setJobTitle(req.getJobTitle());
         di.setSpecialty(req.getSpecialty());
@@ -78,7 +78,7 @@ public class DoctorService {
         di.setIsDeleted(0);
         doctorInfoRepository.insert(di);
 
-        return toDto(di, user, null);
+        return toDto(di, null);
     }
 
     @Transactional
@@ -90,6 +90,22 @@ public class DoctorService {
             throw new BizException(404, "医生不存在");
         }
 
+        if (req.getUsername() != null) {
+            QueryWrapper<DoctorInfo> exists = new QueryWrapper<>();
+            exists.eq("username", req.getUsername());
+            exists.eq("is_deleted", 0);
+            exists.ne("doctor_id", doctorId);
+            if (doctorInfoRepository.selectCount(exists) > 0) {
+                throw new BizException(400, "用户名已存在");
+            }
+            di.setUsername(req.getUsername());
+        }
+        if (req.getPassword() != null) {
+            di.setPasswordHash(passwordService.hash(req.getPassword()));
+        }
+        if (req.getRealName() != null) {
+            di.setRealName(req.getRealName());
+        }
         if (req.getDeptId() != null) {
             HospitalDepartment dept = departmentRepository.selectById(req.getDeptId());
             if (dept == null || (dept.getIsDeleted() != null && dept.getIsDeleted() != 0)) {
@@ -118,8 +134,7 @@ public class DoctorService {
 
         doctorInfoRepository.updateById(di);
 
-        User user = userRepository.selectById(di.getUserId());
-        return toDto(di, user, null);
+        return toDto(di, null);
     }
 
     @Transactional
@@ -140,8 +155,7 @@ public class DoctorService {
         if (di == null || (di.getIsDeleted() != null && di.getIsDeleted() != 0)) {
             throw new BizException(404, "医生不存在");
         }
-        User user = userRepository.selectById(di.getUserId());
-        return toDto(di, user, null);
+        return toDto(di, null);
     }
 
     @Transactional(readOnly = true)
@@ -152,51 +166,13 @@ public class DoctorService {
         if (deptId != null) {
             qw.eq("dept_id", deptId);
         }
+        if (keyword != null) {
+            qw.like("username", keyword);
+        }
         qw.orderByDesc("doctor_id");
 
         IPage<DoctorInfo> diPage = doctorInfoRepository.selectPage(p, qw);
-        List<DoctorInfo> records = diPage.getRecords();
-        if (records == null || records.isEmpty()) {
-            return diPage.convert(di -> toDto(di, null, scheduleDate));
-        }
-
-        List<Long> userIds = new ArrayList<>();
-        for (DoctorInfo di : records) {
-            userIds.add(di.getUserId());
-        }
-        Map<Long, User> userMap = new HashMap<>();
-        List<User> users = userRepository.selectBatchIds(userIds);
-        if (users != null) {
-            for (User u : users) {
-                userMap.put(u.getId(), u);
-            }
-        }
-
-        List<DoctorDto> dtoRecords = new ArrayList<>();
-        for (DoctorInfo di : records) {
-            User u = userMap.get(di.getUserId());
-            if (keyword != null) {
-                String kw = keyword;
-                boolean match = false;
-                if (u != null) {
-                    if (u.getUsername() != null && u.getUsername().contains(kw)) {
-                        match = true;
-                    } else if (u.getRealName() != null && u.getRealName().contains(kw)) {
-                        match = true;
-                    } else if (u.getPhone() != null && u.getPhone().contains(kw)) {
-                        match = true;
-                    }
-                }
-                if (!match) {
-                    continue;
-                }
-            }
-            dtoRecords.add(toDto(di, u, scheduleDate));
-        }
-
-        Page<DoctorDto> out = new Page<>(diPage.getCurrent(), diPage.getSize(), diPage.getTotal());
-        out.setRecords(dtoRecords);
-        return out;
+        return diPage.convert(di -> toDto(di, scheduleDate));
     }
 
     private void checkAdmin(Long operatorUserId) {
@@ -231,10 +207,11 @@ public class DoctorService {
         return Math.toIntExact(registrationRecordRepository.selectCount(qw));
     }
 
-    private DoctorDto toDto(DoctorInfo di, User u, LocalDate scheduleDate) {
+    private DoctorDto toDto(DoctorInfo di, LocalDate scheduleDate) {
         DoctorDto dto = new DoctorDto();
         dto.setDoctorId(di.getDoctorId());
-        dto.setUserId(di.getUserId());
+        dto.setUsername(di.getUsername());
+        dto.setRealName(di.getRealName());
         dto.setDeptId(di.getDeptId());
         dto.setJobTitle(di.getJobTitle());
         dto.setSpecialty(di.getSpecialty());
@@ -248,12 +225,6 @@ public class DoctorService {
         }
         dto.setCreateTime(di.getCreateTime());
         dto.setUpdateTime(di.getUpdateTime());
-        if (u != null) {
-            dto.setUsername(u.getUsername());
-            dto.setRealName(u.getRealName());
-            dto.setPhone(u.getPhone());
-            dto.setAvatar(u.getAvatar());
-        }
         return dto;
     }
 }

@@ -290,20 +290,14 @@ public class MedicationService {
         // Get doctor and patient names
         if (prescription.getDoctorId() != null) {
             DoctorInfo doctor = doctorInfoRepository.selectById(prescription.getDoctorId());
-            if (doctor != null && doctor.getUserId() != null) {
-                User user = userRepository.selectById(doctor.getUserId());
-                if (user != null) {
-                    dto.setDoctorName(user.getRealName() != null ? user.getRealName() : user.getUsername());
-                }
+            if (doctor != null) {
+                dto.setDoctorName(doctor.getRealName() != null ? doctor.getRealName() : doctor.getUsername());
             }
         }
         if (prescription.getPatientId() != null) {
             PatientInfo patient = patientInfoRepository.selectById(prescription.getPatientId());
-            if (patient != null && patient.getUserId() != null) {
-                User user = userRepository.selectById(patient.getUserId());
-                if (user != null) {
-                    dto.setPatientName(user.getRealName() != null ? user.getRealName() : user.getUsername());
-                }
+            if (patient != null) {
+                dto.setPatientName(patient.getRealName() != null ? patient.getRealName() : patient.getUsername());
             }
         }
         
@@ -345,6 +339,15 @@ public class MedicationService {
         dto.setNotes(record.getNotes());
         dto.setCreatedAt(record.getCreatedAt());
         dto.setUpdatedAt(record.getUpdatedAt());
+
+        // Get patient name
+        if (record.getPatientId() != null) {
+            PatientInfo patient = patientInfoRepository.selectById(record.getPatientId());
+            if (patient != null) {
+                dto.setPatientName(patient.getRealName() != null ? patient.getRealName() : patient.getUsername());
+            }
+        }
+
         return dto;
     }
 

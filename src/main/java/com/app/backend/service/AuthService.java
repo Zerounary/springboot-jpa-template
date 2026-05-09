@@ -6,6 +6,11 @@ import com.app.backend.dto.RegisterRequest;
 import com.app.backend.dto.UserCreateRequest;
 import com.app.backend.dto.UserDto;
 import com.app.backend.entity.User;
+import com.app.backend.entity.PatientInfo;
+import com.app.backend.entity.DoctorInfo;
+import com.app.backend.repository.PatientInfoRepository;
+import com.app.backend.repository.DoctorInfoRepository;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +20,16 @@ public class AuthService {
     private final UserService userService;
     private final PasswordService passwordService;
     private final JwtService jwtService;
+    private final PatientInfoRepository patientInfoRepository;
+    private final DoctorInfoRepository doctorInfoRepository;
 
-    public AuthService(UserService userService, PasswordService passwordService, JwtService jwtService) {
+    public AuthService(UserService userService, PasswordService passwordService, JwtService jwtService,
+                      PatientInfoRepository patientInfoRepository, DoctorInfoRepository doctorInfoRepository) {
         this.userService = userService;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
+        this.patientInfoRepository = patientInfoRepository;
+        this.doctorInfoRepository = doctorInfoRepository;
     }
 
     @Transactional
@@ -29,12 +39,43 @@ public class AuthService {
 
     @Transactional
     public String login(LoginRequest req) {
-        User user = userService.findByUsername(req.getUsername())
-                .orElseThrow(() -> new BizException(400, "用户名或密码错误"));
-        if (!passwordService.matches(req.getPassword(), user.getPasswordHash())) {
-            throw new BizException(400, "用户名或密码错误");
+        Integer roleType = req.getRoleType();
+        
+        if (roleType == 1) {
+            // Admin login using users table
+            User user = userService.findByUsername(req.getUsername())
+                    .orElseThrow(() -> new BizException(400, "用户名或密码错误"));
+            if (!passwordService.matches(req.getPassword(), user.getPasswordHash())) {
+                throw new BizException(400, "用户名或密码错误");
+            }
+            return jwtService.createToken(user.getId(), user.getUsername());
+        } else if (roleType == 2) {
+            // Doctor login using doctor_info table
+            QueryWrapper<DoctorInfo> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("username", req.getUsername());
+            DoctorInfo doctor = doctorInfoRepository.selectOne(queryWrapper);
+            if (doctor == null) {
+                throw new BizException(400, "用户名或密码错误");
+            }
+            if (!passwordService.matches(req.getPassword(), doctor.getPasswordHash())) {
+                throw new BizException(400, "用户名或密码错误");
+            }
+            return jwtService.createToken(doctor.getDoctorId(), doctor.getUsername());
+        } else if (roleType == 3) {
+            // Patient login using patient_info table
+            QueryWrapper<PatientInfo> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("username", req.getUsername());
+            PatientInfo patient = patientInfoRepository.selectOne(queryWrapper);
+            if (patient == null) {
+                throw new BizException(400, "用户名或密码错误");
+            }
+            if (!passwordService.matches(req.getPassword(), patient.getPasswordHash())) {
+                throw new BizException(400, "用户名或密码错误");
+            }
+            return jwtService.createToken(patient.getPatientId(), patient.getUsername());
+        } else {
+            throw new BizException(400, "无效的角色类型");
         }
-        return jwtService.createToken(user.getId(), user.getUsername());
     }
 
     @Transactional(readOnly = true)

@@ -424,7 +424,7 @@ onMounted(async () => {
         <el-table-column prop="registrationNo" label="挂号单号" width="190" />
         <el-table-column prop="scheduleDate" label="日期" width="120" />
         <el-table-column prop="timeSlot" label="时段" width="100" />
-        <el-table-column prop="deptId" label="科室ID" width="100" />
+        <el-table-column prop="deptName" label="科室" width="140" />
         <el-table-column prop="doctorRealName" label="医生" width="120" />
         <el-table-column prop="patientRealName" label="患者" width="120" />
         <el-table-column prop="registrationFee" label="费用" width="90" />

@@ -5,6 +5,15 @@ import java.math.BigDecimal;
 
 public class DoctorUpdateRequest {
 
+    @Size(max = 64)
+    private String username;
+
+    @Size(max = 64)
+    private String password;
+
+    @Size(max = 50)
+    private String realName;
+
     private Long deptId;
 
     @Size(max = 30)
@@ -23,6 +32,30 @@ public class DoctorUpdateRequest {
     private String schedule;
 
     private Integer isDeleted;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
+    }
 
     public Long getDeptId() {
         return deptId;

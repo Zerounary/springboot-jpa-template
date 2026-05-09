@@ -12,21 +12,19 @@ public class RegistrationDto {
 
     private Long patientId;
 
-    private Long patientUserId;
-
     private String patientRealName;
 
     private String patientPhone;
 
     private Long doctorId;
 
-    private Long doctorUserId;
-
     private String doctorRealName;
 
     private String doctorPhone;
 
     private Long deptId;
+
+    private String deptName;
 
     private LocalDate scheduleDate;
 
@@ -70,14 +68,6 @@ public class RegistrationDto {
         this.patientId = patientId;
     }
 
-    public Long getPatientUserId() {
-        return patientUserId;
-    }
-
-    public void setPatientUserId(Long patientUserId) {
-        this.patientUserId = patientUserId;
-    }
-
     public String getPatientRealName() {
         return patientRealName;
     }
@@ -102,14 +92,6 @@ public class RegistrationDto {
         this.doctorId = doctorId;
     }
 
-    public Long getDoctorUserId() {
-        return doctorUserId;
-    }
-
-    public void setDoctorUserId(Long doctorUserId) {
-        this.doctorUserId = doctorUserId;
-    }
-
     public String getDoctorRealName() {
         return doctorRealName;
     }
@@ -132,6 +114,14 @@ public class RegistrationDto {
 
     public void setDeptId(Long deptId) {
         this.deptId = deptId;
+    }
+
+    public String getDeptName() {
+        return deptName;
+    }
+
+    public void setDeptName(String deptName) {
+        this.deptName = deptName;
     }
 
     public LocalDate getScheduleDate() {

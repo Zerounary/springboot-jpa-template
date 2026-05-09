@@ -9,8 +9,6 @@ public class HealthMonitorDto {
 
     private Long patientId;
 
-    private Long patientUserId;
-
     private String patientRealName;
 
     private String patientPhone;
@@ -49,14 +47,6 @@ public class HealthMonitorDto {
 
     public void setPatientId(Long patientId) {
         this.patientId = patientId;
-    }
-
-    public Long getPatientUserId() {
-        return patientUserId;
-    }
-
-    public void setPatientUserId(Long patientUserId) {
-        this.patientUserId = patientUserId;
     }
 
     public String getPatientRealName() {

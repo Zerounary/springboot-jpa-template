@@ -5,11 +5,13 @@ import com.app.backend.dto.MedicalRecordCreateRequest;
 import com.app.backend.dto.MedicalRecordDto;
 import com.app.backend.dto.MedicalRecordUpdateRequest;
 import com.app.backend.entity.DoctorInfo;
+import com.app.backend.entity.HospitalDepartment;
 import com.app.backend.entity.MedicalRecord;
 import com.app.backend.entity.PatientInfo;
 import com.app.backend.entity.RegistrationRecord;
 import com.app.backend.entity.User;
 import com.app.backend.repository.DoctorInfoRepository;
+import com.app.backend.repository.HospitalDepartmentRepository;
 import com.app.backend.repository.MedicalRecordRepository;
 import com.app.backend.repository.PatientInfoRepository;
 import com.app.backend.repository.RegistrationRecordRepository;
@@ -33,6 +35,7 @@ public class MedicalRecordService {
     private final RegistrationRecordRepository registrationRecordRepository;
     private final PatientInfoRepository patientInfoRepository;
     private final DoctorInfoRepository doctorInfoRepository;
+    private final HospitalDepartmentRepository departmentRepository;
     private final UserRepository userRepository;
     private final UserService userService;
 
@@ -40,12 +43,14 @@ public class MedicalRecordService {
                                RegistrationRecordRepository registrationRecordRepository,
                                PatientInfoRepository patientInfoRepository,
                                DoctorInfoRepository doctorInfoRepository,
+                               HospitalDepartmentRepository departmentRepository,
                                UserRepository userRepository,
                                UserService userService) {
         this.medicalRecordRepository = medicalRecordRepository;
         this.registrationRecordRepository = registrationRecordRepository;
         this.patientInfoRepository = patientInfoRepository;
         this.doctorInfoRepository = doctorInfoRepository;
+        this.departmentRepository = departmentRepository;
         this.userRepository = userRepository;
         this.userService = userService;
     }
@@ -241,7 +246,6 @@ public class MedicalRecordService {
         DoctorInfo di = doctorInfoRepository.selectById(mr.getDoctorId());
 
         MedicalRecordDto dto = toDto(mr, pi, di);
-        enrichUsers(dto, pi, di);
         return dto;
     }
 
@@ -334,49 +338,11 @@ public class MedicalRecordService {
             }
         }
 
-        List<Long> userIds = new ArrayList<>();
-        for (PatientInfo pi : patientMap.values()) {
-            if (pi != null) {
-                userIds.add(pi.getUserId());
-            }
-        }
-        for (DoctorInfo di : doctorMap.values()) {
-            if (di != null) {
-                userIds.add(di.getUserId());
-            }
-        }
-
-        Map<Long, User> userMap = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            List<User> users = userRepository.selectBatchIds(userIds);
-            if (users != null) {
-                for (User u : users) {
-                    userMap.put(u.getId(), u);
-                }
-            }
-        }
-
         List<MedicalRecordDto> outRecords = new ArrayList<>();
         for (MedicalRecord mr : records) {
             PatientInfo pi = patientMap.get(mr.getPatientId());
             DoctorInfo di = doctorMap.get(mr.getDoctorId());
             MedicalRecordDto dto = toDto(mr, pi, di);
-            if (pi != null) {
-                User pu = userMap.get(pi.getUserId());
-                if (pu != null) {
-                    dto.setPatientUserId(pu.getId());
-                    dto.setPatientRealName(pu.getRealName());
-                    dto.setPatientPhone(pu.getPhone());
-                }
-            }
-            if (di != null) {
-                User du = userMap.get(di.getUserId());
-                if (du != null) {
-                    dto.setDoctorUserId(du.getId());
-                    dto.setDoctorRealName(du.getRealName());
-                    dto.setDoctorPhone(du.getPhone());
-                }
-            }
             outRecords.add(dto);
         }
 
@@ -452,50 +418,16 @@ public class MedicalRecordService {
         dto.setUpdateTime(mr.getUpdateTime());
 
         if (pi != null) {
-            dto.setPatientUserId(pi.getUserId());
+            dto.setPatientRealName(pi.getRealName());
         }
         if (di != null) {
-            dto.setDoctorUserId(di.getUserId());
+            dto.setDoctorRealName(di.getRealName());
+        }
+        HospitalDepartment dept = departmentRepository.selectById(mr.getDeptId());
+        if (dept != null) {
+            dto.setDeptName(dept.getDeptName());
         }
 
         return dto;
-    }
-
-    private void enrichUsers(MedicalRecordDto dto, PatientInfo pi, DoctorInfo di) {
-        List<Long> userIds = new ArrayList<>();
-        if (pi != null) {
-            userIds.add(pi.getUserId());
-        }
-        if (di != null) {
-            userIds.add(di.getUserId());
-        }
-        if (userIds.isEmpty()) {
-            return;
-        }
-
-        Map<Long, User> userMap = new HashMap<>();
-        List<User> users = userRepository.selectBatchIds(userIds);
-        if (users != null) {
-            for (User u : users) {
-                userMap.put(u.getId(), u);
-            }
-        }
-
-        if (pi != null) {
-            User pu = userMap.get(pi.getUserId());
-            if (pu != null) {
-                dto.setPatientUserId(pu.getId());
-                dto.setPatientRealName(pu.getRealName());
-                dto.setPatientPhone(pu.getPhone());
-            }
-        }
-        if (di != null) {
-            User du = userMap.get(di.getUserId());
-            if (du != null) {
-                dto.setDoctorUserId(du.getId());
-                dto.setDoctorRealName(du.getRealName());
-                dto.setDoctorPhone(du.getPhone());
-            }
-        }
     }
 }

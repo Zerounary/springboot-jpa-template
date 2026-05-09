@@ -1,6 +1,7 @@
 package com.app.backend.dto;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 public class LoginRequest {
@@ -12,6 +13,9 @@ public class LoginRequest {
     @NotBlank
     @Size(min = 6, max = 64)
     private String password;
+
+    @NotNull
+    private Integer roleType;
 
     public String getUsername() {
         return username;
@@ -27,5 +31,13 @@ public class LoginRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Integer getRoleType() {
+        return roleType;
+    }
+
+    public void setRoleType(Integer roleType) {
+        this.roleType = roleType;
     }
 }

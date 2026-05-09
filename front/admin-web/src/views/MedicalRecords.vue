@@ -407,7 +407,7 @@ onMounted(async () => {
       <el-table :data="records" v-loading="loading" style="width: 100%">
         <el-table-column prop="recordId" label="ID" width="90" />
         <el-table-column prop="visitDate" label="就诊时间" width="170" />
-        <el-table-column prop="deptId" label="科室ID" width="100" />
+        <el-table-column prop="deptName" label="科室" width="140" />
         <el-table-column prop="registrationId" label="挂号ID" width="100" />
         <el-table-column prop="doctorRealName" label="医生" width="120" />
         <el-table-column prop="patientRealName" label="患者" width="120" />

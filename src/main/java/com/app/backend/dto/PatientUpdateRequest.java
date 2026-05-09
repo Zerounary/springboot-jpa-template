@@ -5,6 +5,15 @@ import java.time.LocalDate;
 
 public class PatientUpdateRequest {
 
+    @Size(max = 64)
+    private String username;
+
+    @Size(max = 64)
+    private String password;
+
+    @Size(max = 50)
+    private String realName;
+
     private LocalDate birthDate;
 
     private Integer age;
@@ -26,6 +35,30 @@ public class PatientUpdateRequest {
     private String allergyHistory;
 
     private String pastMedicalHistory;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
+    }
 
     public LocalDate getBirthDate() {
         return birthDate;

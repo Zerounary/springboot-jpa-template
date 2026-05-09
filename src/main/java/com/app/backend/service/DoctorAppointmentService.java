@@ -131,7 +131,7 @@ public class DoctorAppointmentService {
         DoctorDailyAppointmentDto dto = new DoctorDailyAppointmentDto();
         dto.setId(appointment.getId());
         dto.setDoctorId(appointment.getDoctorId());
-        dto.setDoctorName(doctor != null ? getDoctorName(doctor.getUserId()) : "Unknown");
+        dto.setDoctorName(doctor != null ? doctor.getRealName() : "Unknown");
         dto.setAppointmentDate(appointment.getAppointmentDate());
         dto.setDailyLimit(appointment.getDailyLimit());
         dto.setBookedCount(appointment.getBookedCount());
@@ -142,6 +142,6 @@ public class DoctorAppointmentService {
     private String getDoctorName(Long userId) {
         // This would typically fetch from user repository
         // For simplicity, returning a placeholder
-        return "Doctor " + userId;
+        return null;
     }
 }

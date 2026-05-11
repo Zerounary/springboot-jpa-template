@@ -210,6 +210,7 @@ const handleChange = (value) => {
 
 // 处理清空
 const handleClear = () => {
+  selectedValue.value = undefined
   emit('clear')
 }
 

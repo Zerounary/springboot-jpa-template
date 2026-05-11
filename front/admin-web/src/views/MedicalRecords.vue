@@ -364,6 +364,7 @@ onMounted(async () => {
             placeholder="科室"
             style="width: 200px"
             @change="resetAndSearch"
+            @clear="resetAndSearch"
           />
 
           <DoctorSelect
@@ -372,6 +373,7 @@ onMounted(async () => {
             placeholder="医生"
             style="width: 180px"
             @change="resetAndSearch"
+            @clear="resetAndSearch"
           />
 
           <PatientSelect
@@ -380,6 +382,7 @@ onMounted(async () => {
             placeholder="患者"
             style="width: 140px"
             @change="resetAndSearch"
+            @clear="resetAndSearch"
           />
 
           <el-input
@@ -397,6 +400,7 @@ onMounted(async () => {
             placeholder="就诊开始"
             style="width: 180px"
             @change="resetAndSearch"
+            @clear="resetAndSearch"
           />
           <el-date-picker
             v-model="filters.visitTo"
@@ -405,6 +409,7 @@ onMounted(async () => {
             placeholder="就诊结束"
             style="width: 180px"
             @change="resetAndSearch"
+            @clear="resetAndSearch"
           />
 
           <el-button type="primary" @click="resetAndSearch">查询</el-button>

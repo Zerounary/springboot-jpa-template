@@ -75,8 +75,8 @@ public class MedicalRecordController {
             @RequestParam(required = false) Long registrationId,
             @RequestParam(required = false) Integer recordStatus,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime visitFrom,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime visitTo
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime visitFrom,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime visitTo
     ) {
         Long userId = (Long) request.getAttribute(AuthInterceptor.REQ_ATTR_USER_ID);
         return ApiResponse.ok(medicalRecordService.page(userId, page, size, patientId, doctorId, deptId, registrationId, recordStatus, keyword, visitFrom, visitTo));

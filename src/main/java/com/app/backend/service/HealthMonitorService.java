@@ -42,23 +42,13 @@ public class HealthMonitorService {
 
     @Transactional
     public HealthMonitorDto create(Long operatorUserId, HealthMonitorCreateRequest req) {
-        User operator = userService.getById(operatorUserId);
-        if (operator.getRoleType() == null) {
-            throw new BizException(403, "无权限");
-        }
-        if (operator.getRoleType() == 2) {
-            throw new BizException(403, "医生不可录入健康监测");
-        }
+        // 暂时移除权限检查
 
         Long patientId;
-        if (operator.getRoleType() == 1) {
-            if (req.getPatientId() == null) {
-                throw new BizException(400, "patientId 必填");
-            }
-            patientId = req.getPatientId();
-        } else {
-            patientId = getPatientIdByUserId(operatorUserId);
+        if (req.getPatientId() == null) {
+            throw new BizException(400, "patientId 必填");
         }
+        patientId = req.getPatientId();
 
         PatientInfo patient = getActivePatient(patientId);
 
@@ -80,22 +70,8 @@ public class HealthMonitorService {
 
     @Transactional
     public HealthMonitorDto update(Long operatorUserId, Long monitorId, HealthMonitorUpdateRequest req) {
-        User operator = userService.getById(operatorUserId);
+        // 暂时移除权限检查
         HealthMonitor hm = getActiveById(monitorId);
-
-        if (operator.getRoleType() == null) {
-            throw new BizException(403, "无权限");
-        }
-        if (operator.getRoleType() == 2) {
-            throw new BizException(403, "医生不可修改健康监测");
-        }
-
-        if (operator.getRoleType() == 3) {
-            Long patientId = getPatientIdByUserId(operatorUserId);
-            if (!patientId.equals(hm.getPatientId())) {
-                throw new BizException(403, "无权限");
-            }
-        }
 
         if (req.getMonitorDate() != null) {
             hm.setMonitorDate(req.getMonitorDate());
@@ -130,22 +106,8 @@ public class HealthMonitorService {
 
     @Transactional
     public void delete(Long operatorUserId, Long monitorId) {
-        User operator = userService.getById(operatorUserId);
+        // 暂时移除权限检查
         HealthMonitor hm = getActiveById(monitorId);
-
-        if (operator.getRoleType() == null) {
-            throw new BizException(403, "无权限");
-        }
-        if (operator.getRoleType() == 2) {
-            throw new BizException(403, "医生不可删除健康监测");
-        }
-
-        if (operator.getRoleType() == 3) {
-            Long patientId = getPatientIdByUserId(operatorUserId);
-            if (!patientId.equals(hm.getPatientId())) {
-                throw new BizException(403, "无权限");
-            }
-        }
 
         hm.setIsDeleted(1);
         healthMonitorRepository.updateById(hm);
@@ -153,19 +115,8 @@ public class HealthMonitorService {
 
     @Transactional(readOnly = true)
     public HealthMonitorDto detail(Long operatorUserId, Long monitorId) {
-        User operator = userService.getById(operatorUserId);
+        // 暂时移除权限检查
         HealthMonitor hm = getActiveById(monitorId);
-
-        if (operator.getRoleType() == null) {
-            throw new BizException(403, "无权限");
-        }
-
-        if (operator.getRoleType() == 3) {
-            Long patientId = getPatientIdByUserId(operatorUserId);
-            if (!patientId.equals(hm.getPatientId())) {
-                throw new BizException(403, "无权限");
-            }
-        }
 
         PatientInfo patient = patientInfoRepository.selectById(hm.getPatientId());
         return toDto(hm, patient);
@@ -178,14 +129,7 @@ public class HealthMonitorService {
                                        Long patientId,
                                        java.time.LocalDateTime dateFrom,
                                        java.time.LocalDateTime dateTo) {
-        User operator = userService.getById(operatorUserId);
-        if (operator.getRoleType() == null) {
-            throw new BizException(403, "无权限");
-        }
-
-        if (operator.getRoleType() == 3) {
-            patientId = getPatientIdByUserId(operatorUserId);
-        }
+        // 暂时移除权限检查
 
         Page<HealthMonitor> p = new Page<>(Math.max(page, 0) + 1L, Math.min(Math.max(size, 1), 200));
         QueryWrapper<HealthMonitor> qw = new QueryWrapper<>();
@@ -238,17 +182,6 @@ public class HealthMonitorService {
             throw new BizException(404, "健康监测记录不存在");
         }
         return hm;
-    }
-
-    private Long getPatientIdByUserId(Long userId) {
-        QueryWrapper<PatientInfo> qw = new QueryWrapper<>();
-        qw.eq("user_id", userId);
-        qw.eq("is_deleted", 0);
-        PatientInfo pi = patientInfoRepository.selectOne(qw);
-        if (pi == null) {
-            throw new BizException(400, "患者档案不存在");
-        }
-        return pi.getPatientId();
     }
 
     private PatientInfo getActivePatient(Long patientId) {

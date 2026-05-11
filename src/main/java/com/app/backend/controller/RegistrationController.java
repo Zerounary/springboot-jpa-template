@@ -6,6 +6,7 @@ import com.app.backend.dto.RegistrationCreateRequest;
 import com.app.backend.dto.RegistrationDto;
 import com.app.backend.service.RegistrationService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -69,8 +70,8 @@ public class RegistrationController {
             @RequestParam(required = false) Long deptId,
             @RequestParam(required = false) Long doctorId,
             @RequestParam(required = false) Long patientId,
-            @RequestParam(required = false) LocalDate dateFrom,
-            @RequestParam(required = false) LocalDate dateTo
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate dateTo
     ) {
         Long userId = (Long) request.getAttribute(AuthInterceptor.REQ_ATTR_USER_ID);
         return ApiResponse.ok(registrationService.page(userId, page, size, payStatus, registrationStatus, deptId, doctorId, patientId, dateFrom, dateTo));

@@ -10,20 +10,24 @@
     placeholder="请搜索患者"
     :initial-load="true"
     v-bind="$attrs"
-    @change="$emit('change', $event)"
     @clear="$emit('clear')"
   />
 </template>
 
 <script setup>
+import { watch } from 'vue'
 import RemoteSelect from './RemoteSelect.vue'
 
-defineProps({
+const props = defineProps({
   modelValue: {
     type: [String, Number],
     default: undefined
   }
 })
 
-defineEmits(['update:modelValue', 'change', 'clear'])
+const emit = defineEmits(['update:modelValue', 'change', 'clear'])
+
+watch(() => props.modelValue, (newVal) => {
+  emit('change', newVal)
+})
 </script>

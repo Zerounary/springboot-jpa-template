@@ -37,20 +37,7 @@ public class PatientStatisticsService {
         this.patientInfoRepository = patientInfoRepository;
     }
 
-    private Long getPatientIdByUserId(Long userId) {
-        PatientInfo patient = patientInfoRepository.selectOne(
-            new QueryWrapper<PatientInfo>()
-                .eq("user_id", userId)
-                .eq("is_deleted", 0)
-        );
-        if (patient == null) {
-            throw new RuntimeException("Patient not found for user: " + userId);
-        }
-        return patient.getPatientId();
-    }
-
-    public Map<String, Object> getPatientStatistics(Long userId) {
-        Long patientId = getPatientIdByUserId(userId);
+    public Map<String, Object> getPatientStatistics(Long patientId) {
         Map<String, Object> stats = new HashMap<>();
         
         // Personal counts

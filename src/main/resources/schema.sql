@@ -82,54 +82,6 @@ FROM INFORMATION_SCHEMA.STATISTICS
 WHERE TABLE_SCHEMA = @db AND TABLE_NAME = 'users' AND INDEX_NAME = 'uk_users_id_card';
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-CREATE TABLE IF NOT EXISTS sys_role (
-  role_id BIGINT NOT NULL AUTO_INCREMENT,
-  role_name VARCHAR(30) NOT NULL,
-  role_code VARCHAR(30) NOT NULL,
-  description VARCHAR(255) NULL,
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  is_deleted TINYINT NOT NULL DEFAULT 0,
-  PRIMARY KEY (role_id),
-  UNIQUE KEY uk_sys_role_name (role_name),
-  UNIQUE KEY uk_sys_role_code (role_code)
-);
-
-CREATE TABLE IF NOT EXISTS sys_permission (
-  perm_id BIGINT NOT NULL AUTO_INCREMENT,
-  parent_id BIGINT NOT NULL DEFAULT 0,
-  perm_name VARCHAR(50) NOT NULL,
-  perm_code VARCHAR(100) NULL,
-  perm_type TINYINT NOT NULL,
-  path VARCHAR(255) NULL,
-  icon VARCHAR(100) NULL,
-  sort INT NOT NULL DEFAULT 0,
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  is_deleted TINYINT NOT NULL DEFAULT 0,
-  PRIMARY KEY (perm_id),
-  UNIQUE KEY uk_sys_permission_code (perm_code)
-);
-
-CREATE TABLE IF NOT EXISTS sys_user_role (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
-  role_id BIGINT NOT NULL,
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_sys_user_role_user_id (user_id),
-  KEY idx_sys_user_role_role_id (role_id)
-);
-
-CREATE TABLE IF NOT EXISTS sys_role_permission (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  role_id BIGINT NOT NULL,
-  perm_id BIGINT NOT NULL,
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_sys_role_perm_role_id (role_id),
-  KEY idx_sys_role_perm_perm_id (perm_id)
-);
 
 CREATE TABLE IF NOT EXISTS hospital_department (
   dept_id BIGINT NOT NULL AUTO_INCREMENT,
@@ -388,12 +340,6 @@ CREATE TABLE IF NOT EXISTS sys_operation_log (
   KEY idx_oplog_user_id (user_id)
 );
 
-INSERT INTO sys_role (role_name, role_code, description)
-SELECT '系统管理员', 'ADMIN', '初始化管理员角色'
-WHERE NOT EXISTS (
-  SELECT 1 FROM sys_role WHERE role_code = 'ADMIN'
-);
-
 INSERT INTO users (username, password_hash, nickname, email, real_name, role_type, status, is_deleted, created_at, updated_at)
 SELECT 'admin', 'admin123', '管理员', 'admin@example.com', '系统管理员', 1, 1, 0, NOW(), NOW()
 WHERE NOT EXISTS (
@@ -411,16 +357,6 @@ SET password_hash = 'admin123',
     updated_at = NOW()
 WHERE username = 'admin';
 
-INSERT INTO sys_user_role (user_id, role_id)
-SELECT u.id, r.role_id
-FROM users u
-JOIN sys_role r ON r.role_code = 'ADMIN'
-WHERE u.username = 'admin'
-  AND NOT EXISTS (
-    SELECT 1
-    FROM sys_user_role sur
-    WHERE sur.user_id = u.id AND sur.role_id = r.role_id
-  );
 
 -- Insert sample departments
 INSERT INTO hospital_department (dept_name, dept_code, parent_id, description, sort, status, create_time, update_time, is_deleted)

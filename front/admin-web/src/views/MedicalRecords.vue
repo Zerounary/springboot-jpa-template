@@ -113,6 +113,13 @@ function recordStatusText(v) {
   return '-'
 }
 
+function getRiskTagType(riskLevel) {
+  if (riskLevel === '高风险') return 'danger'
+  if (riskLevel === '中风险') return 'warning'
+  if (riskLevel === '低风险') return 'success'
+  return 'info'
+}
+
 async function fetchPage() {
   loading.value = true
   try {
@@ -411,6 +418,11 @@ onMounted(async () => {
         <el-table-column prop="registrationId" label="挂号ID" width="100" />
         <el-table-column prop="doctorRealName" label="医生" width="120" />
         <el-table-column prop="patientRealName" label="患者" width="120" />
+        <el-table-column label="风险等级" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getRiskTagType(row.riskLevel)">{{ row.riskLevel || '无数据' }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.recordStatus === 1 ? 'success' : 'info'">

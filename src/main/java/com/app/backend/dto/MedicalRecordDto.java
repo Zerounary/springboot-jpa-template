@@ -42,6 +42,8 @@ public class MedicalRecordDto {
 
     private Integer recordStatus;
 
+    private String riskLevel;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
@@ -196,6 +198,14 @@ public class MedicalRecordDto {
 
     public void setRecordStatus(Integer recordStatus) {
         this.recordStatus = recordStatus;
+    }
+
+    public String getRiskLevel() {
+        return riskLevel;
+    }
+
+    public void setRiskLevel(String riskLevel) {
+        this.riskLevel = riskLevel;
     }
 
     public LocalDateTime getCreateTime() {

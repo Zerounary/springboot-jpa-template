@@ -10,6 +10,7 @@ import com.app.backend.entity.User;
 import com.app.backend.repository.HealthMonitorRepository;
 import com.app.backend.repository.PatientInfoRepository;
 import com.app.backend.repository.UserRepository;
+import com.app.backend.util.HealthRiskAssessment;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -276,6 +277,18 @@ public class HealthMonitorService {
         if (pi != null) {
             dto.setPatientRealName(pi.getRealName());
         }
+
+        // 计算风险等级
+        Integer systolic = hm.getSystolicPressure();
+        Integer diastolic = hm.getDiastolicPressure();
+        Double glucose = hm.getBloodGlucose() != null ? hm.getBloodGlucose().doubleValue() : null;
+        Integer heartRate = hm.getHeartRate();
+        Double temperature = hm.getBodyTemperature() != null ? hm.getBodyTemperature().doubleValue() : null;
+
+        String riskLevel = HealthRiskAssessment.assessRiskDisplayName(
+            systolic, diastolic, glucose, heartRate, temperature
+        );
+        dto.setRiskLevel(riskLevel);
 
         return dto;
     }

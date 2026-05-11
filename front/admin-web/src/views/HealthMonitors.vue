@@ -118,6 +118,13 @@ async function doDelete(row) {
   fetchPage()
 }
 
+function getRiskTagType(riskLevel) {
+  if (riskLevel === '高风险') return 'danger'
+  if (riskLevel === '中风险') return 'warning'
+  if (riskLevel === '低风险') return 'success'
+  return 'info'
+}
+
 onMounted(async () => {
   if (!auth.me) {
     try {
@@ -201,6 +208,11 @@ onMounted(async () => {
         <el-table-column prop="monitorId" label="ID" width="90" />
         <el-table-column prop="monitorDate" label="监测时间" width="170" />
         <el-table-column prop="patientRealName" label="患者" width="120" />
+        <el-table-column label="风险等级" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getRiskTagType(row.riskLevel)">{{ row.riskLevel || '未评估' }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="systolicPressure" label="收缩压" width="90" />
         <el-table-column prop="diastolicPressure" label="舒张压" width="90" />
         <el-table-column prop="bloodGlucose" label="血糖" width="90" />

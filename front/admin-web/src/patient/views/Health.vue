@@ -101,6 +101,13 @@ async function removeOne(item) {
   }
 }
 
+function getRiskTagType(riskLevel) {
+  if (riskLevel === '高风险') return 'danger'
+  if (riskLevel === '中风险') return 'warning'
+  if (riskLevel === '低风险') return 'success'
+  return 'info'
+}
+
 function ensureChart() {
   if (!chartEl.value) return null
   if (!chart) {
@@ -266,12 +273,17 @@ onUnmounted(() => {
           <div v-for="h in list" :key="h.monitorId" class="patient-hm-card">
             <div class="patient-list-head">
               <div class="patient-title">{{ formatDateTime(h.monitorDate) }}</div>
-              <el-button size="small" type="danger" plain @click="removeOne(h)">删除</el-button>
+              <div class="patient-status">
+                <el-tag :type="getRiskTagType(h.riskLevel)">{{ h.riskLevel || '未评估' }}</el-tag>
+              </div>
             </div>
             <div class="patient-meta">血压：{{ h.systolicPressure ?? '-' }}/{{ h.diastolicPressure ?? '-' }}</div>
             <div class="patient-meta">血糖：{{ h.bloodGlucose ?? '-' }} | 心率：{{ h.heartRate ?? '-' }}</div>
             <div class="patient-meta">体温：{{ h.bodyTemperature ?? '-' }} | 体重：{{ h.weight ?? '-' }}</div>
             <div v-if="h.remark" class="patient-meta">备注：{{ h.remark }}</div>
+            <div style="margin-top: 8px">
+              <el-button size="small" type="danger" plain @click="removeOne(h)">删除</el-button>
+            </div>
           </div>
 
           <div v-if="total > size" style="display: flex; justify-content: center; margin-top: 12px">

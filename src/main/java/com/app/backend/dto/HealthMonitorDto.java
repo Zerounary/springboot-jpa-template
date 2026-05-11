@@ -29,6 +29,8 @@ public class HealthMonitorDto {
 
     private String remark;
 
+    private String riskLevel;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
@@ -127,6 +129,14 @@ public class HealthMonitorDto {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public String getRiskLevel() {
+        return riskLevel;
+    }
+
+    public void setRiskLevel(String riskLevel) {
+        this.riskLevel = riskLevel;
     }
 
     public LocalDateTime getCreateTime() {

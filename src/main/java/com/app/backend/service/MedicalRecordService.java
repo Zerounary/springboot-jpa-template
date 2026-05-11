@@ -5,17 +5,20 @@ import com.app.backend.dto.MedicalRecordCreateRequest;
 import com.app.backend.dto.MedicalRecordDto;
 import com.app.backend.dto.MedicalRecordUpdateRequest;
 import com.app.backend.entity.DoctorInfo;
+import com.app.backend.entity.HealthMonitor;
 import com.app.backend.entity.HospitalDepartment;
 import com.app.backend.entity.MedicalRecord;
 import com.app.backend.entity.PatientInfo;
 import com.app.backend.entity.RegistrationRecord;
 import com.app.backend.entity.User;
 import com.app.backend.repository.DoctorInfoRepository;
+import com.app.backend.repository.HealthMonitorRepository;
 import com.app.backend.repository.HospitalDepartmentRepository;
 import com.app.backend.repository.MedicalRecordRepository;
 import com.app.backend.repository.PatientInfoRepository;
 import com.app.backend.repository.RegistrationRecordRepository;
 import com.app.backend.repository.UserRepository;
+import com.app.backend.util.HealthRiskAssessment;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,6 +39,7 @@ public class MedicalRecordService {
     private final PatientInfoRepository patientInfoRepository;
     private final DoctorInfoRepository doctorInfoRepository;
     private final HospitalDepartmentRepository departmentRepository;
+    private final HealthMonitorRepository healthMonitorRepository;
     private final UserRepository userRepository;
     private final UserService userService;
 
@@ -44,6 +48,7 @@ public class MedicalRecordService {
                                PatientInfoRepository patientInfoRepository,
                                DoctorInfoRepository doctorInfoRepository,
                                HospitalDepartmentRepository departmentRepository,
+                               HealthMonitorRepository healthMonitorRepository,
                                UserRepository userRepository,
                                UserService userService) {
         this.medicalRecordRepository = medicalRecordRepository;
@@ -51,6 +56,7 @@ public class MedicalRecordService {
         this.patientInfoRepository = patientInfoRepository;
         this.doctorInfoRepository = doctorInfoRepository;
         this.departmentRepository = departmentRepository;
+        this.healthMonitorRepository = healthMonitorRepository;
         this.userRepository = userRepository;
         this.userService = userService;
     }
@@ -426,6 +432,29 @@ public class MedicalRecordService {
         HospitalDepartment dept = departmentRepository.selectById(mr.getDeptId());
         if (dept != null) {
             dto.setDeptName(dept.getDeptName());
+        }
+
+        // 计算风险等级 - 基于患者最新的健康监测数据
+        QueryWrapper<HealthMonitor> healthQuery = new QueryWrapper<>();
+        healthQuery.eq("patient_id", mr.getPatientId());
+        healthQuery.eq("is_deleted", 0);
+        healthQuery.orderByDesc("monitor_date");
+        healthQuery.last("LIMIT 1");
+        HealthMonitor latestHealth = healthMonitorRepository.selectOne(healthQuery);
+
+        if (latestHealth != null) {
+            Integer systolic = latestHealth.getSystolicPressure();
+            Integer diastolic = latestHealth.getDiastolicPressure();
+            Double glucose = latestHealth.getBloodGlucose() != null ? latestHealth.getBloodGlucose().doubleValue() : null;
+            Integer heartRate = latestHealth.getHeartRate();
+            Double temperature = latestHealth.getBodyTemperature() != null ? latestHealth.getBodyTemperature().doubleValue() : null;
+
+            String riskLevel = HealthRiskAssessment.assessRiskDisplayName(
+                systolic, diastolic, glucose, heartRate, temperature
+            );
+            dto.setRiskLevel(riskLevel);
+        } else {
+            dto.setRiskLevel("无数据");
         }
 
         return dto;

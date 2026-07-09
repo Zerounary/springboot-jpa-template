@@ -1,11 +1,11 @@
-CREATE TABLE IF NOT EXISTS users (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  username VARCHAR(64) NOT NULL,
-  password_hash VARCHAR(100) NOT NULL,
-  nickname VARCHAR(64) NULL,
-  email VARCHAR(128) NULL,
-  created_at DATETIME NOT NULL,
-  updated_at DATETIME NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_users_username (username)
+CREATE TABLE users (
+  id NUMBER(19) GENERATED AS IDENTITY,
+  username VARCHAR2(64) NOT NULL,
+  password_hash VARCHAR2(100) NOT NULL,
+  nickname VARCHAR2(64),
+  email VARCHAR2(128),
+  created_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP NOT NULL,
+  CONSTRAINT pk_users PRIMARY KEY (id),
+  CONSTRAINT uk_users_username UNIQUE (username)
 );

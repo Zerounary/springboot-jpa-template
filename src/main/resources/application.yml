@@ -12,10 +12,10 @@ spring:
   application:
     name: backend
   datasource:
-    url: jdbc:mysql://localhost:3306/dash?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:oracle:thin:@//localhost:1521/dash
     username: dash
     password: dash123
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: oracle.jdbc.OracleDriver
   sql:
     init:
       mode: always

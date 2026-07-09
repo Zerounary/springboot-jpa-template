@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 
 import java.time.LocalDateTime;
 
-@TableName("users")
+@TableName("ak_users")
 public class User {
 
     @TableId(type = IdType.ASSIGN_ID)

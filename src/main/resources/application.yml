@@ -1,5 +1,12 @@
 server:
   port: 8080
+  ssl:
+    enabled: false
+    enabled-protocols: TLSv1.1,TLSv1.2,TLSv1.3
+    key-store-type: JKS
+    key-store: classpath:domain.jks
+    key-store-password: pwd123
+    ciphers: ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4:!DH:!DHE
 
 spring:
   application:
